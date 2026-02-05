@@ -1,0 +1,150 @@
+/* Reset */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Body */
+
+body {
+  background: #f4f6f9;
+  min-height: 100vh;
+}
+
+/* Header */
+
+header {
+  background: #1976d2;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+header h2 {
+  font-size: 24px;
+}
+
+header p {
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+
+/* Container */
+
+.container {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 15px;
+}
+
+/* Bus Card */
+
+.bus-card {
+  background: white;
+  padding: 18px 20px;
+  border-radius: 10px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+
+  margin-bottom: 20px;
+
+  transition: 0.2s;
+}
+
+.bus-card:hover {
+  transform: translateY(-3px);
+}
+
+
+/* Bus Info */
+
+.bus-info h3 {
+  color: #1976d2;
+  margin-bottom: 6px;
+}
+
+.bus-info p {
+  font-size: 14px;
+  color: #444;
+  margin: 3px 0;
+}
+
+
+/* Status Badges */
+
+.status {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: white;
+}
+
+.live {
+  background: #2e7d32;
+}
+
+.estimated {
+  background: #f9a825;
+}
+
+.offline {
+  background: #c62828;
+}
+
+
+/* Confidence */
+
+.confidence {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 12px;
+  color: #555;
+}
+
+
+/* Track Button */
+
+.track-btn {
+  background: #1976d2;
+  color: white;
+  border: none;
+
+  padding: 10px 20px;
+  border-radius: 6px;
+
+  cursor: pointer;
+  font-size: 14px;
+
+  transition: 0.3s;
+}
+
+.track-btn:hover {
+  background: #0d47a1;
+}
+
+
+/* Mobile Responsive */
+
+@media (max-width: 600px) {
+
+  .bus-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .track-btn {
+    width: 100%;
+  }
+
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Where Is My Bus</title>
+
+  <link rel="stylesheet" href="/CSS/style.css">
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <h1>🚌 Where Is My Bus</h1>
+    <p>Smart Bus Tracking System</p>
+  </header>
+
+  <!-- Main -->
+  <main class="container">
+
+    <!-- Search -->
+    <section class="search-box">
+
+      <div class="input-group">
+        <label>From</label>
+        <input type="text" id="from" placeholder="Enter source">
+      </div>
+
+      <div class="input-group">
+        <label>To</label>
+        <input type="text" id="to" placeholder="Enter destination">
+      </div>
+
+      <div class="input-group">
+        <label>From Time</label>
+        <input type="time" id="startTime">
+      </div>
+
+      <div class="input-group">
+        <label>To Time</label>
+        <input type="time" id="endTime">
+      </div>
+<button class="btn-search" onclick="goToBusList()">Find Bus</button>
+
+
+    </section>
+
+    <!-- Results -->
+    <section id="results"></section>
+
+    <!-- Location -->
+    <section class="location-box">
+      <button class="btn-location" onclick="startSharing()">
+        📍 Share My Location
+      </button>
+    </section>
+
+  </main>
+  <!-- Firebase CDN -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<!-- Firebase Init -->
+<script src="/FIREBASE/firebase.js"></script>
+
+
+
+
+  <script src="/JS/script.js"></script>
+  
+
+</body>
+</html>

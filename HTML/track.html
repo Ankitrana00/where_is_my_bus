@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <title>Live Bus Tracking</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <link rel="stylesheet" href="/CSS/track.css" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <h2>🚌 Live Bus Tracking</h2>
+    <p id="busName">Tracking Bus</p>
+  </header>
+
+  <!-- Info Panel -->
+  <section class="info-panel">
+
+    <div class="info-box">
+      <strong>Status:</strong>
+      <span id="status">Live</span>
+    </div>
+
+    <div class="info-box">
+      <strong>Confidence:</strong>
+      <span id="confidence">--%</span>
+    </div>
+
+    <button id="joinBtn">🚍 Inside This Bus</button>
+
+  </section>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+  </script>
+  <!-- Firebase CDN -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<!-- Firebase Init -->
+<script src="/FIREBASE/firebase.js"></script>
+
+
+
+
+  <script src="/JS/track.js"></script>
+
+</body>
+</html>
