@@ -37,6 +37,28 @@ header {
   font-size: 14px;
 }
 
+/* Status indicators */
+.status-live {
+  color: #4CAF50;
+  font-weight: 600;
+  animation: pulse 1.5s infinite;
+}
+
+.status-estimated {
+  color: #FF9800;
+  font-weight: 600;
+}
+
+.status-offline {
+  color: #F44336;
+  font-weight: 600;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
 #joinBtn {
   background: #2e7d32;
   color: white;

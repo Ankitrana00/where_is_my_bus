@@ -21,12 +21,20 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 // Bus Marker
 let busMarker = L.marker([28.99, 77.02]).addTo(map);
 
+function calculateVariance(values) {
+  if (values.length === 0) return 0;
+  const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+  const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
+  return squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
+}
+
 // Live location listener (average position)
 if (busId) {
   db.ref(`liveLocation/${busId}`).on("value", (snapshot) => {
     const data = snapshot.val();
 
     if (!data) {
+      updateConfidenceAndStatus(0, 0);
       return;
     }
 
@@ -40,7 +48,9 @@ if (busId) {
       }))
       .filter((item) =>
         typeof item.lat === "number" &&
-        typeof item.lng === "number"
+        typeof item.lng === "number" &&
+        typeof item.time === "number" &&
+        (typeof item.accuracy !== "number" || Number.isFinite(item.accuracy))
       );
 
     const now = Date.now();
@@ -53,6 +63,7 @@ if (busId) {
     console.log("Valid locations:", recentLocations.length);
 
     if (recentLocations.length === 0) {
+      updateConfidenceAndStatus(0, 0);
       const fallbackLat = 28.99;
       const fallbackLng = 77.02;
       busMarker.setLatLng([fallbackLat, fallbackLng]);
@@ -75,6 +86,7 @@ if (busId) {
     });
 
     if (totalWeight === 0) {
+      updateConfidenceAndStatus(0, 0);
       const fallbackLat = 28.99;
       const fallbackLng = 77.02;
       busMarker.setLatLng([fallbackLat, fallbackLng]);
@@ -85,7 +97,25 @@ if (busId) {
     const avgLat = sumLat / totalWeight;
     const avgLng = sumLng / totalWeight;
 
+    // Calculate variance for confidence
+    const lats = recentLocations.map(loc => loc.lat);
+    const lngs = recentLocations.map(loc => loc.lng);
+    const latVariance = calculateVariance(lats);
+    const lngVariance = calculateVariance(lngs);
+    const totalVariance = latVariance + lngVariance;
+
+    // Update UI with real confidence
+    updateConfidenceAndStatus(recentLocations.length, totalVariance);
+
     console.log("Weighted position:", avgLat, avgLng, "Total weight:", totalWeight);
+
+    if (!Number.isFinite(totalWeight) || !Number.isFinite(avgLat) || !Number.isFinite(avgLng)) {
+      const fallbackLat = 28.99;
+      const fallbackLng = 77.02;
+      busMarker.setLatLng([fallbackLat, fallbackLng]);
+      map.panTo([fallbackLat, fallbackLng]);
+      return;
+    }
 
     busMarker.setLatLng([avgLat, avgLng]);
     map.panTo([avgLat, avgLng]);
@@ -159,11 +189,38 @@ joinBtn.addEventListener("click", () => {
 
 
 // Confidence Meter (Demo)
-function updateConfidence() {
+function updateConfidenceAndStatus(numUsers, variance) {
+  const statusEl = document.getElementById("status");
+  const confEl = document.getElementById("confidence");
 
-  let conf = Math.floor(60 + Math.random() * 35);
+  // Edge case: No users
+  if (numUsers === 0) {
+    statusEl.textContent = "Offline";
+    statusEl.className = "status-offline";
+    confEl.textContent = "0%";
+    return;
+  }
 
-  document.getElementById("confidence").innerText =
-    conf + "%";
+  // Calculate confidence: min(100, numUsers*10 + 50/(variance+1))
+  const userScore = numUsers * 10;
+  const varianceScore = 50 / (variance + 1);
+  const confidence = Math.min(100, Math.round(userScore + varianceScore));
+
+  confEl.textContent = confidence + "%";
+
+  // Determine status based on confidence and recency
+  if (numUsers >= 2 && confidence >= 70) {
+    statusEl.textContent = "Live";
+    statusEl.className = "status-live";
+  } else if (numUsers === 1 || confidence >= 50) {
+    statusEl.textContent = "Estimated";
+    statusEl.className = "status-estimated";
+  } else {
+    statusEl.textContent = "Uncertain";
+    statusEl.className = "status-offline";
+  }
 }
+
+// Initialize UI to offline state
+updateConfidenceAndStatus(0, 0);
 
