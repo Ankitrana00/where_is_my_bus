@@ -223,4 +223,16 @@ function updateConfidenceAndStatus(numUsers, variance) {
 
 // Initialize UI to offline state
 updateConfidenceAndStatus(0, 0);
+// jab user offline ho jaye ya tab band karde tab uska dta firebase se delete karne ke liye 
+window.onbeforeunload = () => {
+
+  if (busId && userId) {
+
+    db.ref("liveLocation/" + busId + "/" + userId).remove();
+
+    console.log("User removed from Firebase");
+  }
+
+};
+
 
