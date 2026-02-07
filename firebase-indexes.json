@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "liveLocation": {
+      "$busId": {
+        ".indexOn": ["time"]
+      }
+    },
+    "buses": {
+      ".indexOn": ["route", "time"]
+    }
+  }
+}

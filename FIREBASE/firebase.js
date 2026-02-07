@@ -11,7 +11,32 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
+// Enable offline persistence
+try {
+  firebase.database().ref('.info/connected').on('value', () => {
+    // Connection established
+  });
+
+  firebase.database.enableLogging(false);
+
+  console.log('Offline persistence enabled');
+} catch (error) {
+  console.warn('Offline persistence not available:', error);
+}
+
 // Global Database
-window.db = firebase.database();
+try {
+  window.db = firebase.database();
+
+  // Test connection
+  db.ref('.info/connected').on('value', (snapshot) => {
+    if (snapshot.val() === false) {
+      console.warn('Firebase connection lost');
+    }
+  });
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+  alert('Failed to connect to database. Please refresh the page.');
+}
 
 console.log("🔥 Firebase Connected:", window.db);

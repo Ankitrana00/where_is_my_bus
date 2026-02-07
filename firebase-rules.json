@@ -1,0 +1,29 @@
+{
+  "rules": {
+    "liveLocation": {
+      "$busId": {
+        "$userId": {
+          ".write": "auth == null || auth != null",
+          ".read": true,
+          ".validate": "newData.hasChildren(['lat', 'lng', 'time', 'accuracy'])",
+          "lat": {
+            ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+          },
+          "lng": {
+            ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+          },
+          "time": {
+            ".validate": "newData.isNumber() && newData.val() <= now + 60000"
+          },
+          "accuracy": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          }
+        }
+      }
+    },
+    "buses": {
+      ".read": true,
+      ".write": false
+    }
+  }
+}

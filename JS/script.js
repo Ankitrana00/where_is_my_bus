@@ -69,24 +69,129 @@ function errorLocation(error) {
   locationBtn.innerText = "📍 Share My Location";
   locationBtn.disabled = false;
 }
+
+// Validation Helpers
+function validateRouteName(name) {
+  if (!name || name.trim().length === 0) {
+    return { valid: false, error: "Route name cannot be empty" };
+  }
+  if (name.trim().length < 2) {
+    return { valid: false, error: "Route name too short (min 2 characters)" };
+  }
+  if (name.trim().length > 50) {
+    return { valid: false, error: "Route name too long (max 50 characters)" };
+  }
+  if (!/^[a-zA-Z0-9\s\-]+$/.test(name)) {
+    return { valid: false, error: "Only letters, numbers, spaces, and hyphens allowed" };
+  }
+  return { valid: true };
+}
+
+function validateTimeRange(start, end) {
+  if (!start || !end) {
+    return { valid: false, error: "Both start and end times are required" };
+  }
+  if (start >= end) {
+    return { valid: false, error: "End time must be after start time" };
+  }
+  return { valid: true };
+}
+
+function showFieldError(fieldId, message) {
+  const field = document.getElementById(fieldId);
+  const parent = field.parentElement;
+
+  field.classList.add('input-error');
+
+  const existingError = parent.querySelector('.error-text');
+  if (existingError) existingError.remove();
+
+  const errorText = document.createElement('span');
+  errorText.className = 'error-text';
+  errorText.textContent = message;
+  parent.appendChild(errorText);
+}
+
+function clearFieldError(fieldId) {
+  const field = document.getElementById(fieldId);
+  const parent = field.parentElement;
+
+  field.classList.remove('input-error');
+  const errorText = parent.querySelector('.error-text');
+  if (errorText) errorText.remove();
+}
+
+function clearAllErrors() {
+  ['from', 'to', 'startTime', 'endTime'].forEach(clearFieldError);
+}
 function goToBusList() {
+  clearAllErrors();
 
   const from = document.getElementById("from").value.trim();
   const to = document.getElementById("to").value.trim();
-
   const start = document.getElementById("startTime").value;
   const end = document.getElementById("endTime").value;
 
-  if (!from || !to || !start || !end) {
-    alert("Please fill all fields");
-    return;
+  let hasError = false;
+
+  const fromValidation = validateRouteName(from);
+  if (!fromValidation.valid) {
+    showFieldError('from', fromValidation.error);
+    hasError = true;
   }
 
-  // Create URL with parameters
+  const toValidation = validateRouteName(to);
+  if (!toValidation.valid) {
+    showFieldError('to', toValidation.error);
+    hasError = true;
+  }
+
+  if (from.toLowerCase() === to.toLowerCase() && from && to) {
+    showFieldError('to', 'Destination must be different from source');
+    hasError = true;
+  }
+
+  const timeValidation = validateTimeRange(start, end);
+  if (!timeValidation.valid) {
+    showFieldError('startTime', timeValidation.error);
+    hasError = true;
+  }
+
+  if (hasError) return;
+
   const url = `buslist.html?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&start=${start}&end=${end}`;
 
-  // Redirect
   window.location.href = url;
 }
+
+// Real-time validation on input
+document.getElementById('from').addEventListener('blur', function() {
+  const validation = validateRouteName(this.value.trim());
+  if (!validation.valid) {
+    showFieldError('from', validation.error);
+  } else {
+    clearFieldError('from');
+  }
+});
+
+document.getElementById('to').addEventListener('blur', function() {
+  const validation = validateRouteName(this.value.trim());
+  if (!validation.valid) {
+    showFieldError('to', validation.error);
+  } else {
+    clearFieldError('to');
+  }
+});
+
+document.getElementById('endTime').addEventListener('change', function() {
+  const start = document.getElementById('startTime').value;
+  const end = this.value;
+  const validation = validateTimeRange(start, end);
+  if (!validation.valid && start && end) {
+    showFieldError('startTime', validation.error);
+  } else {
+    clearFieldError('startTime');
+  }
+});
 
 
