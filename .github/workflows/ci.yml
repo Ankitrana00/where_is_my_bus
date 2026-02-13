@@ -13,6 +13,8 @@ jobs:
   # Placeholder job - will be expanded once code is added
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
