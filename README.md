@@ -48,7 +48,17 @@ This section will be updated once the implementation begins.
 
 ## 📚 Documentation
 
-For a comprehensive analysis of the project requirements and recommendations, see [ANALYSIS.md](./ANALYSIS.md).
+This repository includes comprehensive documentation to guide development:
+
+- **[QUICK_START.md](./QUICK_START.md)** - Quick reference guide for navigating the documentation
+- **[SUMMARY.md](./SUMMARY.md)** - Executive summary of the repository analysis
+- **[ANALYSIS.md](./ANALYSIS.md)** - Detailed analysis with architecture recommendations
+- **[NEXT_STEPS.md](./NEXT_STEPS.md)** - Actionable recommendations with code examples
+- **[ROADMAP.md](./ROADMAP.md)** - 18-week development roadmap
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Guidelines for contributing
+- **[SECURITY.md](./SECURITY.md)** - Security policies and reporting
+
+👉 **Start with [QUICK_START.md](./QUICK_START.md) for an overview of all documentation.**
 
 ## 🤝 Contributing
 
