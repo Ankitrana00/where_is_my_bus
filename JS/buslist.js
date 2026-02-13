@@ -13,22 +13,22 @@ const container = document.querySelector(".container");
 const sampleBuses = [
   {
     id: "Palwal–Chandigarh Express",
-    route: ["Palwal", "Chandigarh"],
-    schedule: ["08:30"],
+    route: ["Palwal", "Ambala", "Chandigarh"],
+    schedule: ["08:30", "12:00", "16:30"],
     status: "estimated",
     active: true
   },
   {
     id: "Yamunanagar–Kurukshetra Shuttle",
-    route: ["Yamunanagar", "Kurukshetra"],
-    schedule: ["10:15"],
+    route: ["Yamunanagar", "Shahbad", "Kurukshetra"],
+    schedule: ["10:15", "13:45", "18:10"],
     status: "estimated",
     active: true
   },
   {
     id: "Jaipur–Delhi Intercity",
-    route: ["Jaipur", "Delhi"],
-    schedule: ["07:00"],
+    route: ["Jaipur", "Alwar", "Gurugram", "Delhi"],
+    schedule: ["07:00", "11:20", "15:40", "19:00"],
     status: "estimated",
     active: true
   }
@@ -281,7 +281,12 @@ function filterAndDisplayBuses(buses) {
     const schedule = Array.isArray(bus.schedule)
       ? bus.schedule
       : (bus.time ? [bus.time] : []);
-    const displayTime = schedule.length > 0 ? schedule[0] : 'N/A';
+    
+    // Show arrival time at destination (not departure)
+    const displayTime = schedule.length > 0 && tIndex < schedule.length 
+      ? schedule[tIndex] 
+      : (schedule.length > 0 ? schedule[0] : 'N/A');
+    
     const key = getOrCreateBusKey(bus.id);
 
     found = true;
