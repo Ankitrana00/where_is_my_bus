@@ -1,0 +1,29 @@
+name: CI/CD Pipeline
+
+# This workflow will be activated once code is added to the repository
+# Currently disabled as there is no code to test yet
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Placeholder job - will be expanded once code is added
+  check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Placeholder
+      run: echo "CI/CD pipeline will be configured once code is added"
+      
+  # Future jobs to add:
+  # - lint: Run linters (ESLint, Prettier, Black, etc.)
+  # - test: Run unit and integration tests
+  # - build: Build the application
+  # - security: Run security scans
+  # - deploy: Deploy to staging/production (on main branch)
