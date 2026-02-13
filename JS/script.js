@@ -143,7 +143,7 @@ function goToBusList() {
 
   if (hasError) return;
 
-  const url = `/buslist?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  const url = `/HTML/buslist.html?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
 
   window.location.href = url;
 }

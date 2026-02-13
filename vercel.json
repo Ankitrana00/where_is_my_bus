@@ -1,7 +1,5 @@
 {
   "rewrites": [
-    { "source": "/buslist", "destination": "/HTML/buslist.html" },
-    { "source": "/track", "destination": "/HTML/track.html" },
     { "source": "/", "destination": "/HTML/index.html" }
   ]
 }
