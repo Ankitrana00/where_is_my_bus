@@ -54,7 +54,7 @@ container.innerHTML = `
 // Before filtering, validate URL parameters
 if (!from || !to) {
   container.innerHTML = `
-    <p>⚠️ Missing search parameters. <a href="index.html">Go back</a></p>
+    <p>⚠️ Missing search parameters. <a href="/">Go back</a></p>
   `;
 } else {
   const timeout = setTimeout(() => {
@@ -325,7 +325,7 @@ function filterAndDisplayBuses(buses) {
           <li>Try searching for nearby stations</li>
           <li>Some buses may not be active at this time</li>
         </ul>
-        <button class="retry-btn" onclick="window.location.href='index.html'">
+        <button class="retry-btn" onclick="window.location.href='/'">
           New Search
         </button>
       </div>
@@ -339,7 +339,7 @@ function filterAndDisplayBuses(buses) {
 
 // Track
 function trackBus(id) {
-  window.location.href = "track.html?bus=" + encodeURIComponent(id);
+  window.location.href = "/track?bus=" + encodeURIComponent(id);
 }
 
   // Later: redirect to map page
