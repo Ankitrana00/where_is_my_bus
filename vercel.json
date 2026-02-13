@@ -1,6 +1,11 @@
 {
   "rewrites": [
+    { "source": "/HTML/", "destination": "/HTML/index.html" },
     { "source": "/HTML", "destination": "/HTML/index.html" },
+    { "source": "/HTML/buslist", "destination": "/HTML/buslist.html" },
+    { "source": "/HTML/track", "destination": "/HTML/track.html" },
+    { "source": "/buslist", "destination": "/HTML/buslist.html" },
+    { "source": "/track", "destination": "/HTML/track.html" },
     { "source": "/", "destination": "/HTML/index.html" }
   ]
 }
