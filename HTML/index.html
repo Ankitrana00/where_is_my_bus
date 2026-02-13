@@ -6,7 +6,7 @@
 
   <title>Where Is My Bus</title>
 
-  <link rel="stylesheet" href="/CSS/style.css">
+  <link rel="stylesheet" href="../CSS/style.css">
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
@@ -34,15 +34,6 @@
         <input type="text" id="to" placeholder="Enter destination">
       </div>
 
-      <div class="input-group">
-        <label>From Time</label>
-        <input type="time" id="startTime">
-      </div>
-
-      <div class="input-group">
-        <label>To Time</label>
-        <input type="time" id="endTime">
-      </div>
 <button class="btn-search" onclick="goToBusList()">Find Bus</button>
 
 
@@ -53,7 +44,7 @@
 
     <!-- Location -->
     <section class="location-box">
-      <button class="btn-location" onclick="startSharing()">
+      <button class="btn-location">
         📍 Share My Location
       </button>
     </section>
@@ -64,12 +55,12 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <!-- Firebase Init -->
-<script src="/FIREBASE/firebase.js"></script>
+<script src="../FIREBASE/firebase.js"></script>
 
 
 
 
-  <script src="/JS/script.js"></script>
+  <script src="../JS/script.js"></script>
   
 
 </body>

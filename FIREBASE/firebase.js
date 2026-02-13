@@ -17,9 +17,10 @@ try {
     // Connection established
   });
 
-  firebase.database.enableLogging(false);
+  // Enable disk persistence for offline support
+  firebase.database.enableLogging(false); // Disable verbose logs in production
 
-  console.log('Offline persistence enabled');
+  console.log('✅ Offline persistence enabled');
 } catch (error) {
   console.warn('Offline persistence not available:', error);
 }
@@ -27,11 +28,27 @@ try {
 // Global Database
 try {
   window.db = firebase.database();
+  window.isFirebaseConnected = true;
 
-  // Test connection
+  // Test connection (debounced to avoid flicker logs)
+  let disconnectTimer = null;
+
   db.ref('.info/connected').on('value', (snapshot) => {
-    if (snapshot.val() === false) {
-      console.warn('Firebase connection lost');
+    const connected = snapshot.val() === true;
+    window.isFirebaseConnected = connected;
+
+    if (!connected) {
+      if (disconnectTimer) clearTimeout(disconnectTimer);
+      disconnectTimer = setTimeout(() => {
+        if (window.isFirebaseConnected === false) {
+          console.warn('Firebase connection lost');
+        }
+      }, 2000);
+    } else {
+      if (disconnectTimer) {
+        clearTimeout(disconnectTimer);
+        disconnectTimer = null;
+      }
     }
   });
 } catch (error) {

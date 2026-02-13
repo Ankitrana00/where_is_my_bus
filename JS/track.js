@@ -282,7 +282,7 @@ const joinBtn = document.getElementById("joinBtn");
 // Unique user id (per device/session)
 const userId = "user_" + Date.now();
 let lastUpdateTime = 0;
-const UPDATE_INTERVAL = 5000;
+const UPDATE_INTERVAL = 5000; // 5 seconds
 
 let locationWatchId = null;
 let retryCount = 0;

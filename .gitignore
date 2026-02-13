@@ -1,0 +1,13 @@
+node_modules/
+.DS_Store
+.vscode/
+*.log
+.git/
+.qodo/
+.zencoder/
+.zenflow/
+.env
+firebase-debug.log
+.firebase/
+dist/
+build/

@@ -3,15 +3,36 @@ const params = new URLSearchParams(window.location.search);
 
 const from = params.get("from");
 const to = params.get("to");
-const start = params.get("start");
-const end = params.get("end");
 
 // Show in console (test)
 console.log("From:", from);
 console.log("To:", to);
-console.log("Time:", start, "-", end);
 
 const container = document.querySelector(".container");
+
+const sampleBuses = [
+  {
+    id: "Palwal–Chandigarh Express",
+    route: ["Palwal", "Chandigarh"],
+    schedule: ["08:30"],
+    status: "estimated",
+    active: true
+  },
+  {
+    id: "Yamunanagar–Kurukshetra Shuttle",
+    route: ["Yamunanagar", "Kurukshetra"],
+    schedule: ["10:15"],
+    status: "estimated",
+    active: true
+  },
+  {
+    id: "Jaipur–Delhi Intercity",
+    route: ["Jaipur", "Delhi"],
+    schedule: ["07:00"],
+    status: "estimated",
+    active: true
+  }
+];
 
 const liveListeners = {};
 const lastUpdateMap = {};
@@ -19,6 +40,9 @@ const pendingUpdates = {};
 let rafScheduled = false;
 let timestampIntervalId = null;
 let staleCheckIntervalId = null;
+let trackClickBound = false;
+const busIdToKey = new Map();
+const usedKeys = new Set();
 
 // Show loading state
 container.innerHTML = `
@@ -28,50 +52,38 @@ container.innerHTML = `
 `;
 
 // Before filtering, validate URL parameters
-if (!from || !to || !start || !end) {
+if (!from || !to) {
   container.innerHTML = `
     <p>⚠️ Missing search parameters. <a href="index.html">Go back</a></p>
   `;
 } else {
-  // Validate time format (HH:MM)
-  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-  if (!timeRegex.test(start) || !timeRegex.test(end)) {
+  const timeout = setTimeout(() => {
     container.innerHTML = `
-      <p>⚠️ Invalid time format. <a href="index.html">Go back</a></p>
+      <p>⚠️ Request timed out. <button onclick="location.reload()">Retry</button></p>
     `;
-  } else {
-    const timeout = setTimeout(() => {
-      container.innerHTML = `
-        <p>⚠️ Request timed out. <button onclick="location.reload()">Retry</button></p>
-      `;
-    }, 10000);
+  }, 10000);
 
-    // Fetch buses from Firebase
+  if (!window.db) {
+    clearTimeout(timeout);
+    filterAndDisplayBuses(sampleBuses);
+  } else {
     db.ref('buses').once('value')
       .then((snapshot) => {
         clearTimeout(timeout);
         const data = snapshot.val();
 
         if (!data || Object.keys(data).length === 0) {
-          container.innerHTML = "<p>No buses available. Check back later.</p>";
+          filterAndDisplayBuses(sampleBuses);
           return;
         }
 
-        // Convert Firebase object to array
         const buses = Object.values(data).filter(bus => bus.active !== false);
-
-        // Apply existing filtering logic
         filterAndDisplayBuses(buses);
       })
       .catch((error) => {
         clearTimeout(timeout);
         console.error("Firebase error:", error);
-        container.innerHTML = `
-          <div class="error">
-            <p>⚠️ Unable to load buses. Please check your connection.</p>
-            <button onclick="location.reload()">Retry</button>
-          </div>
-        `;
+        filterAndDisplayBuses(sampleBuses);
       });
   }
 }
@@ -134,7 +146,10 @@ function determineStatus(numUsers, confidence) {
 }
 
 function updateTimestampText(busId, lastUpdate) {
-  const updateEl = document.getElementById(`update-${busId}`);
+  const key = getBusKey(busId);
+  if (!key) return;
+
+  const updateEl = document.getElementById(`update-${key}`);
   if (!updateEl) return;
 
   if (!lastUpdate) {
@@ -177,8 +192,11 @@ function flushPendingUpdates() {
   Object.keys(pendingUpdates).forEach((key) => delete pendingUpdates[key]);
 
   Object.entries(updates).forEach(([busId, update]) => {
-    const confEl = document.getElementById(`conf-${busId}`);
-    const statusEl = document.querySelector(`.status[data-bus-id="${busId}"]`);
+    const key = getBusKey(busId);
+    if (!key) return;
+
+    const confEl = document.getElementById(`conf-${key}`);
+    const statusEl = document.querySelector(`.status[data-bus-key="${key}"]`);
     if (!confEl || !statusEl) return;
 
     confEl.textContent = `${update.confidence}%`;
@@ -241,6 +259,9 @@ function filterAndDisplayBuses(buses) {
   let found = false;
   container.innerHTML = ""; // Clear loading state
 
+  const fromKey = normalizeName(from);
+  const toKey = normalizeName(to);
+
   buses.forEach(bus => {
     // Validate bus data structure
     if (!bus.id || !Array.isArray(bus.route)) {
@@ -248,47 +269,51 @@ function filterAndDisplayBuses(buses) {
       return;
     }
 
-    const schedule = Array.isArray(bus.schedule)
-      ? bus.schedule
-      : (bus.time ? [bus.time] : []);
+    const routeKeys = bus.route.map((r) => normalizeName(r));
 
-    // Route matching logic (existing)
-    const fIndex = bus.route.indexOf(from);
-    const tIndex = bus.route.indexOf(to);
+    const fIndex = routeKeys.indexOf(fromKey);
+    const tIndex = routeKeys.indexOf(toKey);
 
     if (fIndex === -1 || tIndex === -1 || fIndex >= tIndex) return;
 
-    // Time window filtering (existing)
-    const matchedTime = schedule.find((time) => time >= start && time <= end);
     const status = bus.status ? bus.status : 'unknown';
 
-    if (matchedTime) {
-      found = true;
+    const schedule = Array.isArray(bus.schedule)
+      ? bus.schedule
+      : (bus.time ? [bus.time] : []);
+    const displayTime = schedule.length > 0 ? schedule[0] : 'N/A';
+    const key = getOrCreateBusKey(bus.id);
 
-      // Render bus card (existing HTML template)
-      container.innerHTML += `
-        <div class="bus-card" data-bus-id="${bus.id}">
-          <div class="bus-info">
-            <h3>${bus.id}</h3>
-            <p>Route: ${from} → ${to}</p>
-            <p>Arrival: ${matchedTime}</p>
-            <span class="status ${status}" data-bus-id="${bus.id}">
-              ${status.toUpperCase()}
-            </span>
-            <span class="confidence" id="conf-${bus.id}">
-              0%
-            </span>
-            <span class="last-update" id="update-${bus.id}">--</span>
-          </div>
-          <button class="track-btn" onclick="trackBus('${bus.id}')">
-            Track
-          </button>
+    found = true;
+
+    // Render bus card (existing HTML template)
+    container.innerHTML += `
+      <div class="bus-card" data-bus-id="${bus.id}" data-bus-key="${key}">
+        <div class="bus-info">
+          <h3>${bus.id}</h3>
+          <p>Route: ${from} → ${to}</p>
+          <p>Arrival: ${displayTime}</p>
+          <span class="status ${status}" data-bus-key="${key}">
+            ${status.toUpperCase()}
+          </span>
+          <span class="confidence" id="conf-${key}">
+            0%
+          </span>
+          <span class="last-update" id="update-${key}">--</span>
         </div>
-      `;
+        <button class="track-btn" data-bus-id="${bus.id}">
+          Track
+        </button>
+      </div>
+    `;
 
-      attachLiveUpdates(bus.id);
-    }
+    attachLiveUpdates(bus.id);
   });
+
+  if (!trackClickBound) {
+    container.addEventListener('click', handleTrackClick);
+    trackClickBound = true;
+  }
 
   if (!found) {
     container.innerHTML = `
@@ -296,7 +321,6 @@ function filterAndDisplayBuses(buses) {
         <h3>🚌 No Buses Found</h3>
         <p>We couldn't find any buses matching your search criteria.</p>
         <ul>
-          <li>Try adjusting your time window</li>
           <li>Check if the route names are spelled correctly</li>
           <li>Try searching for nearby stations</li>
           <li>Some buses may not be active at this time</li>
@@ -315,7 +339,7 @@ function filterAndDisplayBuses(buses) {
 
 // Track
 function trackBus(id) {
-  window.location.href = "track.html?bus=" + id;
+  window.location.href = "track.html?bus=" + encodeURIComponent(id);
 }
 
   // Later: redirect to map page
@@ -333,4 +357,48 @@ window.addEventListener('beforeunload', () => {
     clearInterval(staleCheckIntervalId);
   }
 });
+
+function normalizeName(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function handleTrackClick(event) {
+  const button = event.target.closest('.track-btn');
+  if (!button) return;
+
+  const busId = button.getAttribute('data-bus-id');
+  if (busId) trackBus(busId);
+}
+
+function createSafeKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function getOrCreateBusKey(busId) {
+  if (busIdToKey.has(busId)) return busIdToKey.get(busId);
+
+  const baseKey = createSafeKey(busId) || "bus";
+  let key = baseKey;
+  let suffix = 1;
+
+  while (usedKeys.has(key)) {
+    suffix += 1;
+    key = `${baseKey}-${suffix}`;
+  }
+
+  usedKeys.add(key);
+  busIdToKey.set(busId, key);
+  return key;
+}
+
+function getBusKey(busId) {
+  return busIdToKey.get(busId);
+}
 

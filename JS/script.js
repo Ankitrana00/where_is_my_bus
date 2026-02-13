@@ -1,10 +1,9 @@
 // Select Location Button
 const locationBtn = document.querySelector(".btn-location");
-
 let watchId = null;
 
-// When button clicked
-locationBtn.addEventListener("click", () => {
+function startSharing() {
+  if (!locationBtn) return;
 
   // Check if browser supports GPS
   if (!navigator.geolocation) {
@@ -25,8 +24,11 @@ locationBtn.addEventListener("click", () => {
 
   locationBtn.innerText = "📡 Sharing Location...";
   locationBtn.disabled = true;
-});
+}
 
+if (locationBtn) {
+  locationBtn.addEventListener("click", startSharing);
+}
 
 // Success Callback (When location received)
 function successLocation(position) {
@@ -87,16 +89,6 @@ function validateRouteName(name) {
   return { valid: true };
 }
 
-function validateTimeRange(start, end) {
-  if (!start || !end) {
-    return { valid: false, error: "Both start and end times are required" };
-  }
-  if (start >= end) {
-    return { valid: false, error: "End time must be after start time" };
-  }
-  return { valid: true };
-}
-
 function showFieldError(fieldId, message) {
   const field = document.getElementById(fieldId);
   const parent = field.parentElement;
@@ -122,15 +114,13 @@ function clearFieldError(fieldId) {
 }
 
 function clearAllErrors() {
-  ['from', 'to', 'startTime', 'endTime'].forEach(clearFieldError);
+  ['from', 'to'].forEach(clearFieldError);
 }
 function goToBusList() {
   clearAllErrors();
 
   const from = document.getElementById("from").value.trim();
   const to = document.getElementById("to").value.trim();
-  const start = document.getElementById("startTime").value;
-  const end = document.getElementById("endTime").value;
 
   let hasError = false;
 
@@ -151,15 +141,9 @@ function goToBusList() {
     hasError = true;
   }
 
-  const timeValidation = validateTimeRange(start, end);
-  if (!timeValidation.valid) {
-    showFieldError('startTime', timeValidation.error);
-    hasError = true;
-  }
-
   if (hasError) return;
 
-  const url = `buslist.html?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&start=${start}&end=${end}`;
+  const url = `buslist.html?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
 
   window.location.href = url;
 }
@@ -180,17 +164,6 @@ document.getElementById('to').addEventListener('blur', function() {
     showFieldError('to', validation.error);
   } else {
     clearFieldError('to');
-  }
-});
-
-document.getElementById('endTime').addEventListener('change', function() {
-  const start = document.getElementById('startTime').value;
-  const end = this.value;
-  const validation = validateTimeRange(start, end);
-  if (!validation.valid && start && end) {
-    showFieldError('startTime', validation.error);
-  } else {
-    clearFieldError('startTime');
   }
 });
 

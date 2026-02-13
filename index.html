@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=HTML/index.html">
+  <title>Where Is My Bus</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .loader {
+      text-align: center;
+      color: white;
+    }
+    .spinner {
+      border: 4px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top: 4px solid white;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="loader">
+    <div class="spinner"></div>
+    <h2>🚌 Where Is My Bus</h2>
+    <p>Redirecting to app...</p>
+  </div>
+  <noscript>
+    <p>Open <a href="HTML/index.html">HTML/index.html</a>.</p>
+  </noscript>
+  <script>
+    // Fallback if meta refresh fails
+    setTimeout(() => {
+      window.location.href = 'HTML/index.html';
+    }, 100);
+    window.location.replace("HTML/index.html");
+  </script>
+</body>
+</html>
