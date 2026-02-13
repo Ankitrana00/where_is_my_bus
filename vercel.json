@@ -7,5 +7,16 @@
     { "source": "/buslist", "destination": "/HTML/buslist.html" },
     { "source": "/track", "destination": "/HTML/track.html" },
     { "source": "/", "destination": "/HTML/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
   ]
 }
