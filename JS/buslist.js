@@ -280,11 +280,12 @@ function filterAndDisplayBuses(buses) {
 
     const routeKeys = bus.route.map((r) => normalizeName(r));
     console.log(`Bus ${index} - Route:`, bus.route, "Normalized:", routeKeys);
+    console.log(`Bus ${index} - Actual route stop names:`, JSON.stringify(bus.route)); // Show exact names
 
     const fIndex = routeKeys.indexOf(fromKey);
     const tIndex = routeKeys.indexOf(toKey);
     
-    console.log(`Bus ${index} - fromIndex: ${fIndex}, toIndex: ${tIndex}, fromKey: "${fromKey}", toKey: "${toKey}"`);
+    console.log(`Bus ${index} - Looking for fromKey: "${fromKey}" in [${routeKeys.join(", ")}] → found at index ${fIndex}`);
 
     if (fIndex === -1 || tIndex === -1 || fIndex >= tIndex) {
       console.log(`Bus ${index} - Skipped (fIndex=${fIndex}, tIndex=${tIndex}, fIndex>=tIndex=${fIndex >= tIndex})`);
