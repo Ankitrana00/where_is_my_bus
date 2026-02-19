@@ -45,8 +45,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 
-// Bus Marker
-let busMarker = L.marker([28.99, 77.02]).addTo(map);
+// Bus Marker - initialize at the route starting point (same as map center)
+let busMarker = L.marker(mapCenter).addTo(map);
 
 function calculateVariance(values) {
   if (values.length === 0) return 0;
