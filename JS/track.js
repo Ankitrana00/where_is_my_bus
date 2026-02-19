@@ -200,7 +200,9 @@ if (busId) {
         const lngVariance = calculateVariance(lngs);
         const totalVariance = latVariance + lngVariance;
 
-        updateConfidenceAndStatus(recentLocations.length, totalVariance);
+        // Enhanced confidence calculation using all available metrics
+        const confidence = calculateConfidenceScore(recentLocations, totalVariance);
+        updateConfidenceAndStatus(recentLocations.length, totalVariance, confidence);
 
         console.log("Weighted position:", avgLat, avgLng, "Total weight:", totalWeight);
 
@@ -450,8 +452,40 @@ joinBtn.addEventListener("click", () => {
 
 
 
-// Confidence Meter (Demo)
-function updateConfidenceAndStatus(numUsers, variance) {
+// Enhanced Confidence Meter with multi-factor scoring
+// Factors: user count (with diminishing returns), GPS accuracy, data clustering, freshness
+function calculateConfidenceScore(locations, variance) {
+  if (!locations || locations.length === 0) return 0;
+
+  const now = Date.now();
+
+  // Factor 1: User Count (logarithmic scaling - diminishing returns)
+  // 1 user = 25 pts, 2 users = 40 pts, 3 users = 50 pts, 4+ = 60 pts max
+  const userCountScore = Math.min(60, 20 + Math.log(locations.length + 1) * 15);
+
+  // Factor 2: GPS Accuracy (inverse of average accuracy in meters)
+  // 10m accuracy = 35 pts, 30m = 20 pts, 100m+ = 5 pts
+  const avgAccuracy = locations.reduce((sum, loc) => sum + (loc.accuracy || 50), 0) / locations.length;
+  const accuracyScore = Math.max(5, Math.min(35, 50 - avgAccuracy * 0.2));
+
+  // Factor 3: Data Freshness (all points within 2min = full score, older = reduced)
+  // Max age of 120 seconds gets 35 pts, older data = lower score
+  const maxAge = Math.max(...locations.map(loc => loc.age || 0));
+  const freshnessScore = Math.max(0, 35 - (maxAge / 120000) * 35);
+
+  // Factor 4: Data Clustering/Variance (low variance = good agreement)
+  // Variance < 0.001 = 30 pts, Variance > 0.1 = 5 pts
+  const clusteringScore = Math.max(5, Math.min(30, 30 - variance * 200));
+
+  // Total: Cap at 100
+  const totalScore = Math.min(100, Math.round(userCountScore + accuracyScore + freshnessScore + clusteringScore));
+
+  console.log(`Confidence breakdown - Users: ${userCountScore.toFixed(0)}, Accuracy: ${accuracyScore.toFixed(0)}, Freshness: ${freshnessScore.toFixed(0)}, Clustering: ${clusteringScore.toFixed(0)} = Total: ${totalScore}`);
+
+  return totalScore;
+}
+
+function updateConfidenceAndStatus(numUsers, variance, confidence = 0) {
   const statusEl = document.getElementById("status");
   const confEl = document.getElementById("confidence");
   const spinner = statusEl.querySelector('.loading-spinner');
@@ -471,18 +505,13 @@ function updateConfidenceAndStatus(numUsers, variance) {
     return;
   }
 
-  // Calculate confidence: min(100, numUsers*10 + 50/(variance+1))
-  const userScore = numUsers * 10;
-  const varianceScore = 50 / (variance + 1);
-  const confidence = Math.min(100, Math.round(userScore + varianceScore));
-
   confEl.textContent = confidence + "%";
 
-  // Determine status based on confidence and recency
-  if (numUsers >= 2 && confidence >= 70) {
+  // Determine status based on confidence level
+  if (confidence >= 70) {
     if (statusText) statusText.textContent = "Live";
     statusEl.className = "status-live";
-  } else if (numUsers === 1 || confidence >= 50) {
+  } else if (confidence >= 50) {
     if (statusText) statusText.textContent = "Estimated";
     statusEl.className = "status-estimated";
   } else {
@@ -492,7 +521,7 @@ function updateConfidenceAndStatus(numUsers, variance) {
 }
 
 // Initialize UI to offline state
-updateConfidenceAndStatus(0, 0);
+updateConfidenceAndStatus(0, 0, 0);
 // jab user offline ho jaye ya tab band karde tab uska dta firebase se delete karne ke liye 
 window.onbeforeunload = () => {
 

@@ -12,21 +12,21 @@ const container = document.querySelector(".container");
 
 const sampleBuses = [
   {
-    id: "Palwal–Chandigarh Express",
+    id: "Palwal–Chandigarh ",
     route: ["Palwal", "Ambala", "Chandigarh"],
     schedule: ["08:30", "12:00", "16:30"],
     status: "estimated",
     active: true
   },
   {
-    id: "Yamunanagar–Kurukshetra Shuttle",
+    id: "Yamunanagar–Kurukshetra ",
     route: ["Yamunanagar", "Shahbad", "Kurukshetra"],
-    schedule: ["10:15", "13:45", "18:10"],
+    schedule: ["10:15", "13:45", "14:10"],
     status: "estimated",
     active: true
   },
   {
-    id: "Jaipur–Delhi Intercity",
+    id: "Jaipur–Delhi ",
     route: ["Jaipur", "Alwar", "Gurugram", "Delhi"],
     schedule: ["07:00", "11:20", "15:40", "19:00"],
     status: "estimated",
