@@ -81,7 +81,7 @@ if (!from || !to) {
           return;
         }
 
-        const buses = Object.values(data).filter(bus => bus.active !== false);
+        const buses = Object.values(data); // Show ALL buses, not just active ones
         console.log("Using Firebase buses:", buses);
         filterAndDisplayBuses(buses);
       })
