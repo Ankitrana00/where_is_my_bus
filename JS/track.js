@@ -22,9 +22,22 @@ if (busId) {
     "Tracking " + busId;
 }
 
+// Determine map center based on bus route starting point
+let mapCenter = [28.99, 77.02]; // Default center (Delhi area)
+let mapZoom = 10;
+
+if (busId && ROUTES && ROUTES[busId]) {
+  const route = ROUTES[busId];
+  const firstStop = route.stops[0];
+  if (firstStop) {
+    mapCenter = [firstStop.lat, firstStop.lng];
+    mapZoom = 10;
+    console.log(`Map centered on ${busId} starting point:`, firstStop.name);
+  }
+}
 
 // Initialize Map
-const map = L.map("map").setView([28.99, 77.02], 10);
+const map = L.map("map").setView(mapCenter, mapZoom);
 
 // OpenStreetMap Layer
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
