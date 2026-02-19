@@ -63,35 +63,11 @@ if (!from || !to) {
     `;
   }, 10000);
 
-  if (!window.db) {
-    console.log("No Firebase DB, using sampleBuses");
-    clearTimeout(timeout);
-    filterAndDisplayBuses(sampleBuses);
-  } else {
-    db.ref('buses').once('value')
-      .then((snapshot) => {
-        clearTimeout(timeout);
-        const data = snapshot.val();
-        
-        console.log("Firebase 'buses' data:", data);
-
-        if (!data || Object.keys(data).length === 0) {
-          console.log("Firebase empty or null, falling back to sampleBuses");
-          filterAndDisplayBuses(sampleBuses);
-          return;
-        }
-
-        const buses = Object.values(data); // Show ALL buses, not just active ones
-        console.log("Using Firebase buses:", buses);
-        filterAndDisplayBuses(buses);
-      })
-      .catch((error) => {
-        clearTimeout(timeout);
-        console.error("Firebase error:", error);
-        console.log("Firebase error, falling back to sampleBuses");
-        filterAndDisplayBuses(sampleBuses);
-      });
-  }
+  // Always use sampleBuses as the source of truth for routes
+  // Firebase can be used later for live location tracking (liveLocation node)
+  clearTimeout(timeout);
+  console.log("Using sampleBuses as the source of truth for all routes");
+  filterAndDisplayBuses(sampleBuses);
 }
 
 function calculateVariance(values) {
@@ -279,16 +255,11 @@ function filterAndDisplayBuses(buses) {
     }
 
     const routeKeys = bus.route.map((r) => normalizeName(r));
-    console.log(`Bus ${index} - Route:`, bus.route, "Normalized:", routeKeys);
-    console.log(`Bus ${index} - Actual route stop names:`, JSON.stringify(bus.route)); // Show exact names
 
     const fIndex = routeKeys.indexOf(fromKey);
     const tIndex = routeKeys.indexOf(toKey);
-    
-    console.log(`Bus ${index} - Looking for fromKey: "${fromKey}" in [${routeKeys.join(", ")}] → found at index ${fIndex}`);
 
     if (fIndex === -1 || tIndex === -1 || fIndex >= tIndex) {
-      console.log(`Bus ${index} - Skipped (fIndex=${fIndex}, tIndex=${tIndex}, fIndex>=tIndex=${fIndex >= tIndex})`);
       return;
     }
 
@@ -309,8 +280,7 @@ function filterAndDisplayBuses(buses) {
 
     found = true;
 
-    // Render bus card (existing HTML template)
-    console.log(`Bus matching found! busId: "${busId}"`);
+    // Render bus card
     container.innerHTML += `
       <div class="bus-card" data-bus-id="${busId}" data-bus-key="${key}">
         <div class="bus-info">
@@ -333,10 +303,6 @@ function filterAndDisplayBuses(buses) {
 
     attachLiveUpdates(busId);
   });
-
-  console.log("=== Filter Summary ===");
-  console.log("Buses found:", found);
-  console.log("Total matched:", found ? "1+ buses" : "0 buses");
 
   if (!trackClickBound) {
     container.addEventListener('click', handleTrackClick);
