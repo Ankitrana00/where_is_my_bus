@@ -64,6 +64,7 @@ if (!from || !to) {
   }, 10000);
 
   if (!window.db) {
+    console.log("No Firebase DB, using sampleBuses");
     clearTimeout(timeout);
     filterAndDisplayBuses(sampleBuses);
   } else {
@@ -71,18 +72,23 @@ if (!from || !to) {
       .then((snapshot) => {
         clearTimeout(timeout);
         const data = snapshot.val();
+        
+        console.log("Firebase 'buses' data:", data);
 
         if (!data || Object.keys(data).length === 0) {
+          console.log("Firebase empty or null, falling back to sampleBuses");
           filterAndDisplayBuses(sampleBuses);
           return;
         }
 
         const buses = Object.values(data).filter(bus => bus.active !== false);
+        console.log("Using Firebase buses:", buses);
         filterAndDisplayBuses(buses);
       })
       .catch((error) => {
         clearTimeout(timeout);
         console.error("Firebase error:", error);
+        console.log("Firebase error, falling back to sampleBuses");
         filterAndDisplayBuses(sampleBuses);
       });
   }
@@ -261,20 +267,29 @@ function filterAndDisplayBuses(buses) {
 
   const fromKey = normalizeName(from);
   const toKey = normalizeName(to);
+  
+  console.log(`Filtering buses: from="${from}" (normalized: "${fromKey}") to="${to}" (normalized: "${toKey}")`);
+  console.log("Total buses received:", buses.length);
 
-  buses.forEach(bus => {
+  buses.forEach((bus, index) => {
     // Validate bus data structure - require route
     if (!Array.isArray(bus.route) || bus.route.length === 0) {
-      console.warn("Invalid bus data:", bus);
+      console.warn(`Bus ${index} - Invalid bus data:`, bus);
       return;
     }
 
     const routeKeys = bus.route.map((r) => normalizeName(r));
+    console.log(`Bus ${index} - Route:`, bus.route, "Normalized:", routeKeys);
 
     const fIndex = routeKeys.indexOf(fromKey);
     const tIndex = routeKeys.indexOf(toKey);
+    
+    console.log(`Bus ${index} - fromIndex: ${fIndex}, toIndex: ${tIndex}, fromKey: "${fromKey}", toKey: "${toKey}"`);
 
-    if (fIndex === -1 || tIndex === -1 || fIndex >= tIndex) return;
+    if (fIndex === -1 || tIndex === -1 || fIndex >= tIndex) {
+      console.log(`Bus ${index} - Skipped (fIndex=${fIndex}, tIndex=${tIndex}, fIndex>=tIndex=${fIndex >= tIndex})`);
+      return;
+    }
 
     // Generate id from route if not provided
     const busId = bus.id || `${bus.route[0]}–${bus.route[bus.route.length - 1]} `;
@@ -294,6 +309,7 @@ function filterAndDisplayBuses(buses) {
     found = true;
 
     // Render bus card (existing HTML template)
+    console.log(`Bus matching found! busId: "${busId}"`);
     container.innerHTML += `
       <div class="bus-card" data-bus-id="${busId}" data-bus-key="${key}">
         <div class="bus-info">
@@ -316,6 +332,10 @@ function filterAndDisplayBuses(buses) {
 
     attachLiveUpdates(busId);
   });
+
+  console.log("=== Filter Summary ===");
+  console.log("Buses found:", found);
+  console.log("Total matched:", found ? "1+ buses" : "0 buses");
 
   if (!trackClickBound) {
     container.addEventListener('click', handleTrackClick);
