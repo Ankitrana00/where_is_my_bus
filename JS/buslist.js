@@ -263,8 +263,8 @@ function filterAndDisplayBuses(buses) {
   const toKey = normalizeName(to);
 
   buses.forEach(bus => {
-    // Validate bus data structure
-    if (!bus.id || !Array.isArray(bus.route)) {
+    // Validate bus data structure - require route
+    if (!Array.isArray(bus.route) || bus.route.length === 0) {
       console.warn("Invalid bus data:", bus);
       return;
     }
@@ -276,7 +276,9 @@ function filterAndDisplayBuses(buses) {
 
     if (fIndex === -1 || tIndex === -1 || fIndex >= tIndex) return;
 
-    const status = bus.status ? bus.status : 'unknown';
+    // Generate id from route if not provided
+    const busId = bus.id || `${bus.route[0]}–${bus.route[bus.route.length - 1]} `;
+    const status = bus.status ? bus.status : 'estimated';
 
     const schedule = Array.isArray(bus.schedule)
       ? bus.schedule
@@ -287,15 +289,15 @@ function filterAndDisplayBuses(buses) {
       ? schedule[tIndex] 
       : (schedule.length > 0 ? schedule[0] : 'N/A');
     
-    const key = getOrCreateBusKey(bus.id);
+    const key = getOrCreateBusKey(busId);
 
     found = true;
 
     // Render bus card (existing HTML template)
     container.innerHTML += `
-      <div class="bus-card" data-bus-id="${bus.id}" data-bus-key="${key}">
+      <div class="bus-card" data-bus-id="${busId}" data-bus-key="${key}">
         <div class="bus-info">
-          <h3>${bus.id}</h3>
+          <h3>${busId}</h3>
           <p>Route: ${from} → ${to}</p>
           <p>Arrival: ${displayTime}</p>
           <span class="status ${status}" data-bus-key="${key}">
@@ -306,13 +308,13 @@ function filterAndDisplayBuses(buses) {
           </span>
           <span class="last-update" id="update-${key}">--</span>
         </div>
-        <button class="track-btn" data-bus-id="${bus.id}">
+        <button class="track-btn" data-bus-id="${busId}">
           Track
         </button>
       </div>
     `;
 
-    attachLiveUpdates(bus.id);
+    attachLiveUpdates(busId);
   });
 
   if (!trackClickBound) {
