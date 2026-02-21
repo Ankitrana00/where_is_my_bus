@@ -133,6 +133,9 @@ db.ref('.info/connected').on('value', (snapshot) => {
   }
 });
 
+// Track position source for accurate confidence display
+let currentPositionSource = 'offline'; // Values: 'offline' | 'estimated' | 'live'
+
 // Fallback positioning system - estimates bus position based on route schedule
 function updateEstimatedPosition() {
   if (!busId || !ROUTES || !ROUTES[busId]) {
@@ -155,6 +158,12 @@ function updateEstimatedPosition() {
   // Update popup with stop name
   const popupText = `${busId}<br>📍 ${estimatedPos.stopName}`;
   busMarker.bindPopup(popupText);
+  
+  // Update confidence to show this is estimated (only if we don't have live GPS data)
+  if (currentPositionSource !== 'live') {
+    currentPositionSource = 'estimated';
+    updateConfidenceAndStatus(0, 0, 'estimated');
+  }
 }
 
 // Run estimated positioning every 10 seconds as fallback when no live data
@@ -173,7 +182,13 @@ if (busId) {
         const data = snapshot.val();
 
         if (!data) {
-          updateConfidenceAndStatus(0, 0);
+          // No firebase data at all - if we have estimated position, keep showing it
+          if (currentPositionSource === 'estimated') {
+            console.log("No Firebase data, continuing with estimated position");
+          } else {
+            console.log("No Firebase data and no estimated position available");
+            updateConfidenceAndStatus(0, 0);
+          }
           showNoDataMessage();
           return;
         }
@@ -207,10 +222,13 @@ if (busId) {
         if (recentLocations.length === 0) {
           // No live GPS data - keep using estimated position
           console.log("No recent live locations, keeping estimated position");
-          updateConfidenceAndStatus(0, 0);
+          // Don't reset confidence here - keep estimated or offline state
+          // The updateEstimatedPosition() interval will handle showing estimated status
           showNoDataMessage();
           return;
         }
+
+        hideNoDataMessage();
 
         let sumLat = 0;
         let sumLng = 0;
@@ -229,7 +247,7 @@ if (busId) {
         if (totalWeight === 0) {
           // Calculation failed but we have live locations - keep estimated position
           console.log("Failed to calculate weighted position, keeping estimated position");
-          updateConfidenceAndStatus(0, 0);
+          // Keep current source state
           return;
         }
 
@@ -244,14 +262,18 @@ if (busId) {
 
         // Enhanced confidence calculation using all available metrics
         const confidence = calculateConfidenceScore(recentLocations, totalVariance);
+        
+        // Mark position source as live and update confidence
+        currentPositionSource = 'live';
         updateConfidenceAndStatus(recentLocations.length, totalVariance, confidence);
 
         console.log("Weighted position:", avgLat, avgLng, "Total weight:", totalWeight);
 
         if (!Number.isFinite(totalWeight) || !Number.isFinite(avgLat) || !Number.isFinite(avgLng)) {
-          // Invalid calculation - keep estimated position
-          console.log("Invalid calculation result, keeping estimated position");
-          updateConfidenceAndStatus(0, 0);
+          // Invalid calculation - revert to estimated position state
+          console.log("Invalid calculation result, reverting to estimated position");
+          currentPositionSource = 'estimated';
+          updateConfidenceAndStatus(0, 0, 'estimated');
           return;
         }
 
@@ -526,11 +548,23 @@ function calculateConfidenceScore(locations, variance) {
   return totalScore;
 }
 
-function updateConfidenceAndStatus(numUsers, variance, confidence = 0) {
+function updateConfidenceAndStatus(numUsers, variance, modeOrConfidence = 0) {
   const statusEl = document.getElementById("status");
   const confEl = document.getElementById("confidence");
   const spinner = statusEl.querySelector('.loading-spinner');
   const statusText = statusEl.querySelector('.status-text');
+
+  // Handle estimated mode (displayed when showing position from schedule, not live GPS)
+  if (modeOrConfidence === 'estimated') {
+    if (spinner) spinner.style.display = 'none';
+    if (statusText) statusText.textContent = "Estimated";
+    statusEl.className = "status-estimated";
+    confEl.textContent = "~%";
+    return;
+  }
+
+  // Convert to numeric confidence value
+  const confidence = typeof modeOrConfidence === 'number' ? modeOrConfidence : 0;
 
   if (numUsers === 0 && variance === 0) {
     if (spinner) spinner.style.display = 'inline';
@@ -538,7 +572,7 @@ function updateConfidenceAndStatus(numUsers, variance, confidence = 0) {
     if (spinner) spinner.style.display = 'none';
   }
 
-  // Edge case: No users
+  // Edge case: No users and not in estimated mode
   if (numUsers === 0) {
     if (statusText) statusText.textContent = "Offline";
     statusEl.className = "status-offline";
@@ -562,8 +596,7 @@ function updateConfidenceAndStatus(numUsers, variance, confidence = 0) {
 }
 
 // Initialize UI to offline state
-updateConfidenceAndStatus(0, 0, 0);
-// jab user offline ho jaye ya tab band karde tab uska dta firebase se delete karne ke liye 
+updateConfidenceAndStatus(0, 0, 0); 
 window.onbeforeunload = () => {
 
   if (busId && userId) {
