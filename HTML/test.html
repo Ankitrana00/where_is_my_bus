@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Routes Loading</title>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    .pass { color: green; }
+    .fail { color: red; }
+    h2 { border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>🚌 Where Is My Bus - Test Page</h1>
+  
+  <h2>Script Loading Test</h2>
+  <div id="output"></div>
+
+  <!-- Test scripts in same order as track.html -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="../FIREBASE/firebase.js"></script>
+  <script src="../JS/routes.js"></script>
+  
+  <script>
+    const out = document.getElementById("output");
+    
+    function log(msg, isPass) {
+      const div = document.createElement("div");
+      div.className = isPass ? "pass" : "fail";
+      div.textContent = (isPass ? "✅" : "❌") + " " + msg;
+      out.appendChild(div);
+    }
+    
+    // Test 1: Check if Leaflet loaded
+    log("Leaflet loaded: " + (typeof L !== 'undefined'), typeof L !== 'undefined');
+    
+    // Test 2: Check if Firebase loaded
+    log("Firebase loaded: " + (typeof firebase !== 'undefined'), typeof firebase !== 'undefined');
+    
+    // Test 3: Check if ROUTES loaded
+    log("ROUTES loaded: " + (typeof ROUTES !== 'undefined'), typeof ROUTES !== 'undefined');
+    
+    // Test 4: Check available routes
+    if (typeof ROUTES !== 'undefined') {
+      const routeKeys = Object.keys(ROUTES);
+      log("Number of routes: " + routeKeys.length, routeKeys.length > 0);
+      
+      routeKeys.forEach((key, i) => {
+        const encoded = encodeURIComponent(key);
+        log("Route " + (i+1) + ": " + key + " (encoded: " + encoded + ")", true);
+      });
+    }
+    
+    // Test 5: Test URL parameter matching
+    const params = new URLSearchParams(window.location.search);
+    const busId = params.get("bus");
+    log("Bus ID from URL: " + (busId || "(none)"), busId ? true : false);
+    
+    if (busId && typeof ROUTES !== 'undefined') {
+      const found = ROUTES[busId];
+      log("Route found in ROUTES: " + (!!found ? "YES" : "NO"), !!found);
+      
+      if (found) {
+        log("Route has " + found.stops.length + " stops", found.stops.length > 0);
+      }
+    }
+  </script>
+</body>
+</html>

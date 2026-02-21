@@ -24,6 +24,19 @@
     <p id="busName">Tracking Bus</p>
   </header>
 
+  <!-- Debug Panel (will show on top) -->
+  <div id="debugPanel" style="background: #222; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; max-height: 150px; overflow-y: auto; border-bottom: 2px solid #0f0; white-space: pre-wrap; word-break: break-all;">
+    <div id="debugLog"></div>
+  </div>
+
+  <!-- Status Display -->
+  <div id="statusDisplay" style="background: #f0f0f0; padding: 10px; border-bottom: 1px solid #ddd; font-family: monospace; font-size: 12px;">
+    <p><strong>Bus ID:</strong> <span id="statusBusId">Loading...</span></p>
+    <p><strong>ROUTES Loaded:</strong> <span id="statusRoutes">...</span></p>
+    <p><strong>Map Initialized:</strong> <span id="statusMap">...</span></p>
+    <p><strong>Button Found:</strong> <span id="statusButton">...</span></p>
+  </div>
+
   <!-- Info Panel -->
   <section class="info-panel">
 

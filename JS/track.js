@@ -13,18 +13,61 @@
  * 3. Set up billing alerts for production
  */
 
+// CRITICAL: Catch any JavaScript errors
+window.addEventListener('error', function(event) {
+  const msg = "❌ ERROR: " + event.message + " at " + event.filename + ":" + event.lineno;
+  console.error(msg);
+  debugLog(msg);
+  if (document.getElementById("debugLog")) {
+    document.getElementById("debugLog").style.color = "#f00";
+  }
+});
+
+// DEBUG: Create visible log panel
+function debugLog(msg) {
+  console.log(msg);
+  const debugPanel = document.getElementById("debugLog");
+  if (debugPanel) {
+    const line = document.createElement("div");
+    line.style.borderBottom = "1px solid #333";
+    line.style.padding = "2px 0";
+    line.textContent = msg;
+    debugPanel.appendChild(line);
+    debugPanel.scrollTop = debugPanel.scrollHeight;
+  }
+}
+
+debugLog("🚌 Track.js script loading...");
+
 // Get bus name from URL
 const params = new URLSearchParams(window.location.search);
 const busId = params.get("bus");
+debugLog("📍 Bus ID from URL: " + busId);
+debugLog("🔍 ROUTES object available: " + (typeof ROUTES !== 'undefined'));
+
+// Update status display
+try {
+  const busIdEl = document.getElementById("statusBusId");
+  const routesEl = document.getElementById("statusRoutes");
+  if (busIdEl) busIdEl.textContent = busId || "(none)";
+  if (routesEl) routesEl.textContent = (typeof ROUTES !== 'undefined') ? "✅ Yes" : "❌ No";
+  debugLog("📝 Status display updated for Bus ID and ROUTES");
+} catch(e) {
+  debugLog("⚠️ Error updating status display: " + e.message);
+}
 
 if (busId) {
   document.getElementById("busName").innerText =
     "Tracking " + busId;
+  debugLog("✅ Bus name set in UI: " + busId);
 }
 
 // Determine map center based on bus route starting point
 let mapCenter = [28.99, 77.02]; // Default center (Delhi area)
 let mapZoom = 10;
+
+debugLog("🗺️ Looking for route: " + busId + " in ROUTES...");
+debugLog("📋 Available routes in ROUTES: " + JSON.stringify(Object.keys(ROUTES || {})));
 
 if (busId && ROUTES && ROUTES[busId]) {
   const route = ROUTES[busId];
@@ -32,21 +75,32 @@ if (busId && ROUTES && ROUTES[busId]) {
   if (firstStop) {
     mapCenter = [firstStop.lat, firstStop.lng];
     mapZoom = 10;
-    console.log(`Map centered on ${busId} starting point:`, firstStop.name);
+    debugLog(`✅ Map centered on ${busId} starting point: ${firstStop.name}`);
   }
+} else {
+  debugLog("⚠️ Route not found! busId exists: " + !!busId + " ROUTES exists: " + !!ROUTES + " Route in ROUTES: " + !!(ROUTES && ROUTES[busId]));
 }
 
 // Initialize Map
+debugLog("🗺️ Initializing map at center: " + JSON.stringify(mapCenter) + " zoom: " + mapZoom);
 const map = L.map("map").setView(mapCenter, mapZoom);
+debugLog("✅ Map instance created successfully");
+try {
+  const mapEl = document.getElementById("statusMap");
+  if (mapEl) mapEl.textContent = "✅ Yes";
+} catch(e) {
+  debugLog("⚠️ Error updating map status: " + e.message);
+}
 
 // OpenStreetMap Layer
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap"
 }).addTo(map);
-
+debugLog("✅ Map tiles layer added");
 
 // Bus Marker - initialize at the route starting point (same as map center)
 let busMarker = L.marker(mapCenter).addTo(map);
+debugLog("📍 Bus marker initialized at: " + JSON.stringify(mapCenter));
 
 function calculateVariance(values) {
   if (values.length === 0) return 0;
@@ -277,13 +331,17 @@ if (busId && ROUTES && ROUTES[busId]) {
 
 // Live location listener (average position)
 
+console.log("🔗 Setting up Firebase listener for bus:", busId);
+
 if (busId) {
   try {
     db.ref(`liveLocation/${busId}`).on("value",
       (snapshot) => {
+        debugLog("📥 Firebase listener fired! Snapshot exists: " + !!snapshot.val());
         const data = snapshot.val();
 
         if (!data) {
+          debugLog("📭 No data in Firebase yet");
           // No firebase data at all - if we have estimated position, keep showing it
           if (currentPositionSource === 'estimated') {
             console.log("No Firebase data, continuing with estimated position");
@@ -295,7 +353,7 @@ if (busId) {
           return;
         }
 
-        hideNoDataMessage();
+        debugLog("✅ Firebase data received! Number of entries: " + Object.values(data).length);
 
         const locations = Object.values(data)
           .map((item) => ({
@@ -371,6 +429,8 @@ if (busId) {
         const avgLat = sumLat / totalWeight;
         const avgLng = sumLng / totalWeight;
 
+        debugLog("📍 Calculated weighted position: " + avgLat + ", " + avgLng);
+
         const lats = recentLocations.map(loc => loc.lat);
         const lngs = recentLocations.map(loc => loc.lng);
         const latVariance = calculateVariance(lats);
@@ -382,18 +442,20 @@ if (busId) {
         
         // Mark position source as live and update confidence
         currentPositionSource = 'live';
+        debugLog("🎯 Updating marker and confidence. Current source: live, Confidence: " + confidence);
         updateConfidenceAndStatus(recentLocations.length, totalVariance, confidence);
 
         console.log("Weighted position:", avgLat, avgLng, "Total weight:", totalWeight);
 
         if (!Number.isFinite(totalWeight) || !Number.isFinite(avgLat) || !Number.isFinite(avgLng)) {
           // Invalid calculation - revert to estimated position state
-          console.log("Invalid calculation result, reverting to estimated position");
+          console.log("❌ Invalid calculation result, reverting to estimated position");
           currentPositionSource = 'estimated';
           updateConfidenceAndStatus(0, 0, 'estimated');
           return;
         }
 
+        debugLog("🎯 Setting bus marker to: [" + avgLat + ", " + avgLng + "]");
         busMarker.setLatLng([avgLat, avgLng]);
         map.panTo([avgLat, avgLng]);
       },
@@ -460,9 +522,17 @@ cleanupOldLocations();
 
 // Join Bus Button
 const joinBtn = document.getElementById("joinBtn");
+debugLog("🔘 Join button element found: " + !!joinBtn);
+try {
+  const buttonEl = document.getElementById("statusButton");
+  if (buttonEl) buttonEl.textContent = !!joinBtn ? "✅ Yes" : "❌ No";
+} catch(e) {
+  debugLog("⚠️ Error updating button status: " + e.message);
+}
 
 // Unique user id (per device/session)
 const userId = "user_" + Date.now();
+debugLog("👤 User ID generated: " + userId);
 let lastUpdateTime = 0;
 const UPDATE_INTERVAL = 5000; // 5 seconds
 
@@ -484,14 +554,22 @@ function showCleanupNotice(count) {
 }
 
 function writeLocationWithRetry(payload) {
-  if (!payload || !busId) return;
+  if (!payload || !busId) {
+    console.error("❌ Cannot write: Missing payload or busId");
+    return;
+  }
+
+  debugLog("💾 Writing location to Firebase: " + JSON.stringify(payload));
 
   const attemptWrite = () => {
     db.ref("liveLocation/" + busId + "/" + userId)
       .set(payload)
+      .then(() => {
+        debugLog("✅ Firebase write successful!");
+      })
       .catch((error) => {
         writeRetryCount += 1;
-        console.error('Firebase write error:', error);
+        console.error('❌ Firebase write error:', error, "Retry count:", writeRetryCount);
 
         if (writeRetryCount <= MAX_WRITE_RETRIES) {
           showErrorPanel(
@@ -517,19 +595,25 @@ function writeLocationWithRetry(payload) {
 }
 
 joinBtn.addEventListener("click", () => {
+  debugLog("🔘 Inside Bus button clicked!");
+  
   if (!navigator.geolocation) {
+    debugLog("❌ GPS not supported");
     showErrorPanel('GPS is not supported on this device', false);
     return;
   }
 
   const params = new URLSearchParams(window.location.search);
   const busId = params.get("bus");
+  debugLog("📍 Bus ID for this click: " + busId);
 
   if (!busId) {
+    debugLog("❌ No bus ID provided");
     showErrorPanel('Bus ID missing. Cannot share location.', false);
     return;
   }
 
+  debugLog("✅ Starting GPS location sharing...");
   joinBtn.innerText = "Requesting GPS...";
   joinBtn.disabled = true;
 
@@ -540,6 +624,7 @@ joinBtn.addEventListener("click", () => {
 
     locationWatchId = navigator.geolocation.watchPosition(
       (pos) => {
+        debugLog("📡 GPS position received: " + pos.coords.latitude + ", " + pos.coords.longitude);
         retryCount = 0;
         hideErrorPanel();
 
@@ -550,11 +635,12 @@ joinBtn.addEventListener("click", () => {
 
         const now = Date.now();
         if (now - lastUpdateTime < UPDATE_INTERVAL) {
+          console.log("⏱️ Rate limiting: Skipping this update (too soon)");
           return;
         }
         lastUpdateTime = now;
 
-        console.log("Sending to Firebase:", lat, lng, accuracy);
+        debugLog("🚀 Sending to Firebase: " + lat + ", " + lng + ", accuracy: " + accuracy);
 
         joinBtn.innerText = "Sharing Location ✓";
 
