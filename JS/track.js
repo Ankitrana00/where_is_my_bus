@@ -157,10 +157,10 @@ function updateEstimatedPosition() {
   busMarker.bindPopup(popupText);
 }
 
-// Run estimated positioning every minute as fallback when no live data
+// Run estimated positioning every 10 seconds as fallback when no live data
 let estimationIntervalId = null;
 if (busId && ROUTES && ROUTES[busId]) {
-  estimationIntervalId = setInterval(updateEstimatedPosition, 60000); // Update every minute
+  estimationIntervalId = setInterval(updateEstimatedPosition, 10000); // Update every 10 seconds for smooth progression
   updateEstimatedPosition(); // Initial call
 }
 
