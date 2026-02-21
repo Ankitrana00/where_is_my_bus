@@ -55,6 +55,103 @@ function calculateVariance(values) {
   return squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
 }
 
+// Rolling buffer to track recent location samples for consistency analysis
+const recentLocationHistory = [];
+const MAX_HISTORY = 5;
+
+// Calculate great-circle distance between two GPS points in meters
+function calculateGPSDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000; // Earth radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// Evaluate location consistency from recent samples
+function evaluateLocationConsistency(locations) {
+  if (!locations || locations.length < 2) {
+    return { consistencyScore: locations && locations.length === 1 ? 100 : 0 };
+  }
+
+  // Calculate pairwise distances between all points
+  const distances = [];
+  for (let i = 0; i < locations.length; i++) {
+    for (let j = i + 1; j < locations.length; j++) {
+      const dist = calculateGPSDistance(
+        locations[i].lat, locations[i].lng,
+        locations[j].lat, locations[j].lng
+      );
+      distances.push(dist);
+    }
+  }
+
+  // If no distances calculated, return neutral score
+  if (distances.length === 0) return { consistencyScore: 50 };
+
+  // Calculate statistics on distances
+  const avgDistance = distances.reduce((a, b) => a + b) / distances.length;
+  const maxDistance = Math.max(...distances);
+  const minDistance = Math.min(...distances);
+
+  // Suspicious patterns detection
+  let suspiciousFlag = false;
+
+  // Flag 1: Single outlier very far from others (>500m away from rest)
+  const farOutliers = distances.filter(d => d > 500).length;
+  if (farOutliers > 0 && locations.length <= 3) {
+    suspiciousFlag = true;
+  }
+
+  // Flag 2: Perfect clustering (all points identical) - unlikely unless stationary
+  const clusteredCount = distances.filter(d => d < 5).length; // 5m threshold
+  const totalPairs = (locations.length * (locations.length - 1)) / 2;
+  const percentClustered = clusteredCount / totalPairs;
+  
+  // If stationary for many samples (>80% within 5m), consistency is good
+  const isStationary = percentClustered > 0.8;
+
+  // Scoring logic
+  let consistencyScore = 100;
+
+  // Perfect consistency (all within 5m) = 95 pts
+  if (percentClustered === 1) {
+    consistencyScore = isStationary ? 95 : 90;
+  }
+  // Good consistency (most points close, <1m avg) = 80-90
+  else if (avgDistance < 10) {
+    consistencyScore = 85;
+  }
+  // Moderate consistency (<50m avg) = 60-75
+  else if (avgDistance < 50) {
+    consistencyScore = 70;
+  }
+  // Poor consistency (50-200m) = 40-60
+  else if (avgDistance < 200) {
+    consistencyScore = 45;
+  }
+  // Very poor consistency (>200m) = 20-40
+  else {
+    consistencyScore = 25;
+  }
+
+  // Penalize suspicious patterns
+  if (suspiciousFlag) {
+    consistencyScore = Math.max(10, consistencyScore - 30);
+  }
+
+  return {
+    consistencyScore: Math.round(consistencyScore),
+    avgDistance: Math.round(avgDistance),
+    maxDistance: Math.round(maxDistance),
+    pointCount: locations.length,
+    suspicious: suspiciousFlag
+  };
+}
+
 function showErrorPanel(message, showRetry = false, retryCallback = null) {
   const existing = document.querySelector('.error-panel');
   if (existing) existing.remove();
@@ -229,6 +326,21 @@ if (busId) {
         }
 
         hideNoDataMessage();
+
+        // Track location history for consistency analysis
+        const latestLocation = recentLocations[recentLocations.length - 1];
+        if (latestLocation) {
+          recentLocationHistory.push({
+            lat: latestLocation.lat,
+            lng: latestLocation.lng,
+            time: latestLocation.time
+          });
+          
+          // Keep only last 5 samples
+          if (recentLocationHistory.length > MAX_HISTORY) {
+            recentLocationHistory.shift();
+          }
+        }
 
         let sumLat = 0;
         let sumLng = 0;
@@ -515,8 +627,8 @@ joinBtn.addEventListener("click", () => {
 
 
 
-// Enhanced Confidence Meter with multi-factor scoring
-// Factors: user count (with diminishing returns), GPS accuracy, data clustering, freshness
+// Enhanced Confidence Meter with multi-factor scoring + location consistency
+// Factors: user count, GPS accuracy, data clustering, freshness, location consistency
 function calculateConfidenceScore(locations, variance) {
   if (!locations || locations.length === 0) return 0;
 
@@ -540,10 +652,26 @@ function calculateConfidenceScore(locations, variance) {
   // Variance < 0.001 = 30 pts, Variance > 0.1 = 5 pts
   const clusteringScore = Math.max(5, Math.min(30, 30 - variance * 200));
 
-  // Total: Cap at 100
-  const totalScore = Math.min(100, Math.round(userCountScore + accuracyScore + freshnessScore + clusteringScore));
+  // Factor 5: Location Consistency (NEW - detect spoofing/proxy locations)
+  // Evaluate consistency of recent location history
+  const consistencyAnalysis = evaluateLocationConsistency(recentLocationHistory);
+  let consistencyScore = Math.round(consistencyAnalysis.consistencyScore * 0.3); // Weight at 30 points max
+  
+  // High penalty for suspicious patterns (spoof detection)
+  if (consistencyAnalysis.suspicious) {
+    consistencyScore = Math.max(0, consistencyScore - 15);
+  }
 
-  console.log(`Confidence breakdown - Users: ${userCountScore.toFixed(0)}, Accuracy: ${accuracyScore.toFixed(0)}, Freshness: ${freshnessScore.toFixed(0)}, Clustering: ${clusteringScore.toFixed(0)} = Total: ${totalScore}`);
+  // Total: Cap at 100
+  const totalScore = Math.min(100, Math.round(
+    userCountScore + 
+    accuracyScore + 
+    freshnessScore + 
+    clusteringScore + 
+    consistencyScore
+  ));
+
+  console.log(`Confidence breakdown - Users: ${userCountScore.toFixed(0)}, Accuracy: ${accuracyScore.toFixed(0)}, Freshness: ${freshnessScore.toFixed(0)}, Clustering: ${clusteringScore.toFixed(0)}, Consistency: ${consistencyScore.toFixed(0)} = Total: ${totalScore}` + (consistencyAnalysis.suspicious ? ' [⚠️ SUSPICIOUS]' : ''));
 
   return totalScore;
 }
