@@ -133,7 +133,39 @@ db.ref('.info/connected').on('value', (snapshot) => {
   }
 });
 
+// Fallback positioning system - estimates bus position based on route schedule
+function updateEstimatedPosition() {
+  if (!busId || !ROUTES || !ROUTES[busId]) {
+    return;
+  }
+
+  const route = ROUTES[busId];
+  const now = new Date();
+  const estimatedPos = window.getBusPosition(busId, now);
+
+  if (!estimatedPos) {
+    console.log("No estimated position available for", busId);
+    return;
+  }
+
+  console.log(`Estimated position for ${busId}: ${estimatedPos.stopName} (${estimatedPos.lat}, ${estimatedPos.lng})`);
+  
+  busMarker.setLatLng([estimatedPos.lat, estimatedPos.lng]);
+  
+  // Update popup with stop name
+  const popupText = `${busId}<br>📍 ${estimatedPos.stopName}`;
+  busMarker.bindPopup(popupText);
+}
+
+// Run estimated positioning every minute as fallback when no live data
+let estimationIntervalId = null;
+if (busId && ROUTES && ROUTES[busId]) {
+  estimationIntervalId = setInterval(updateEstimatedPosition, 60000); // Update every minute
+  updateEstimatedPosition(); // Initial call
+}
+
 // Live location listener (average position)
+
 if (busId) {
   try {
     db.ref(`liveLocation/${busId}`).on("value",
@@ -173,11 +205,10 @@ if (busId) {
         console.log("Valid locations:", recentLocations.length);
 
         if (recentLocations.length === 0) {
+          // No live GPS data - keep using estimated position
+          console.log("No recent live locations, keeping estimated position");
           updateConfidenceAndStatus(0, 0);
-          const fallbackLat = 28.99;
-          const fallbackLng = 77.02;
-          busMarker.setLatLng([fallbackLat, fallbackLng]);
-          map.panTo([fallbackLat, fallbackLng]);
+          showNoDataMessage();
           return;
         }
 
@@ -196,11 +227,9 @@ if (busId) {
         });
 
         if (totalWeight === 0) {
+          // Calculation failed but we have live locations - keep estimated position
+          console.log("Failed to calculate weighted position, keeping estimated position");
           updateConfidenceAndStatus(0, 0);
-          const fallbackLat = 28.99;
-          const fallbackLng = 77.02;
-          busMarker.setLatLng([fallbackLat, fallbackLng]);
-          map.panTo([fallbackLat, fallbackLng]);
           return;
         }
 
@@ -220,10 +249,9 @@ if (busId) {
         console.log("Weighted position:", avgLat, avgLng, "Total weight:", totalWeight);
 
         if (!Number.isFinite(totalWeight) || !Number.isFinite(avgLat) || !Number.isFinite(avgLng)) {
-          const fallbackLat = 28.99;
-          const fallbackLng = 77.02;
-          busMarker.setLatLng([fallbackLat, fallbackLng]);
-          map.panTo([fallbackLat, fallbackLng]);
+          // Invalid calculation - keep estimated position
+          console.log("Invalid calculation result, keeping estimated position");
+          updateConfidenceAndStatus(0, 0);
           return;
         }
 
@@ -569,6 +597,9 @@ if (!navigator.onLine) {
 window.addEventListener('beforeunload', () => {
   if (locationWatchId) {
     navigator.geolocation.clearWatch(locationWatchId);
+  }
+  if (estimationIntervalId) {
+    clearInterval(estimationIntervalId);
   }
   db.ref('.info/connected').off();
   if (busId) {
