@@ -73,83 +73,88 @@ function calculateGPSDistance(lat1, lng1, lat2, lng2) {
 
 // Evaluate location consistency from recent samples
 function evaluateLocationConsistency(locations) {
-  if (!locations || locations.length < 2) {
-    return { consistencyScore: locations && locations.length === 1 ? 100 : 0 };
-  }
-
-  // Calculate pairwise distances between all points
-  const distances = [];
-  for (let i = 0; i < locations.length; i++) {
-    for (let j = i + 1; j < locations.length; j++) {
-      const dist = calculateGPSDistance(
-        locations[i].lat, locations[i].lng,
-        locations[j].lat, locations[j].lng
-      );
-      distances.push(dist);
+  try {
+    if (!locations || locations.length < 2) {
+      return { consistencyScore: locations && locations.length === 1 ? 100 : 0 };
     }
+
+    // Calculate pairwise distances between all points
+    const distances = [];
+    for (let i = 0; i < locations.length; i++) {
+      for (let j = i + 1; j < locations.length; j++) {
+        const dist = calculateGPSDistance(
+          locations[i].lat, locations[i].lng,
+          locations[j].lat, locations[j].lng
+        );
+        distances.push(dist);
+      }
+    }
+
+    // If no distances calculated, return neutral score
+    if (distances.length === 0) return { consistencyScore: 50 };
+
+    // Calculate statistics on distances
+    const avgDistance = distances.reduce((a, b) => a + b) / distances.length;
+    const maxDistance = Math.max(...distances);
+    const minDistance = Math.min(...distances);
+
+    // Suspicious patterns detection
+    let suspiciousFlag = false;
+
+    // Flag 1: Single outlier very far from others (>500m away from rest)
+    const farOutliers = distances.filter(d => d > 500).length;
+    if (farOutliers > 0 && locations.length <= 3) {
+      suspiciousFlag = true;
+    }
+
+    // Flag 2: Perfect clustering (all points identical) - unlikely unless stationary
+    const clusteredCount = distances.filter(d => d < 5).length; // 5m threshold
+    const totalPairs = (locations.length * (locations.length - 1)) / 2;
+    const percentClustered = clusteredCount / totalPairs;
+    
+    // If stationary for many samples (>80% within 5m), consistency is good
+    const isStationary = percentClustered > 0.8;
+
+    // Scoring logic
+    let consistencyScore = 100;
+
+    // Perfect consistency (all within 5m) = 95 pts
+    if (percentClustered === 1) {
+      consistencyScore = isStationary ? 95 : 90;
+    }
+    // Good consistency (most points close, <10m avg) = 80-90
+    else if (avgDistance < 10) {
+      consistencyScore = 85;
+    }
+    // Moderate consistency (<50m avg) = 60-75
+    else if (avgDistance < 50) {
+      consistencyScore = 70;
+    }
+    // Poor consistency (50-200m) = 40-60
+    else if (avgDistance < 200) {
+      consistencyScore = 45;
+    }
+    // Very poor consistency (>200m) = 20-40
+    else {
+      consistencyScore = 25;
+    }
+
+    // Penalize suspicious patterns
+    if (suspiciousFlag) {
+      consistencyScore = Math.max(10, consistencyScore - 30);
+    }
+
+    return {
+      consistencyScore: Math.round(consistencyScore),
+      avgDistance: Math.round(avgDistance),
+      maxDistance: Math.round(maxDistance),
+      pointCount: locations.length,
+      suspicious: suspiciousFlag
+    };
+  } catch(error) {
+    console.error('Error in evaluateLocationConsistency:', error);
+    return { consistencyScore: 50, avgDistance: 0, maxDistance: 0, pointCount: 0, suspicious: false };
   }
-
-  // If no distances calculated, return neutral score
-  if (distances.length === 0) return { consistencyScore: 50 };
-
-  // Calculate statistics on distances
-  const avgDistance = distances.reduce((a, b) => a + b) / distances.length;
-  const maxDistance = Math.max(...distances);
-  const minDistance = Math.min(...distances);
-
-  // Suspicious patterns detection
-  let suspiciousFlag = false;
-
-  // Flag 1: Single outlier very far from others (>500m away from rest)
-  const farOutliers = distances.filter(d => d > 500).length;
-  if (farOutliers > 0 && locations.length <= 3) {
-    suspiciousFlag = true;
-  }
-
-  // Flag 2: Perfect clustering (all points identical) - unlikely unless stationary
-  const clusteredCount = distances.filter(d => d < 5).length; // 5m threshold
-  const totalPairs = (locations.length * (locations.length - 1)) / 2;
-  const percentClustered = clusteredCount / totalPairs;
-  
-  // If stationary for many samples (>80% within 5m), consistency is good
-  const isStationary = percentClustered > 0.8;
-
-  // Scoring logic
-  let consistencyScore = 100;
-
-  // Perfect consistency (all within 5m) = 95 pts
-  if (percentClustered === 1) {
-    consistencyScore = isStationary ? 95 : 90;
-  }
-  // Good consistency (most points close, <1m avg) = 80-90
-  else if (avgDistance < 10) {
-    consistencyScore = 85;
-  }
-  // Moderate consistency (<50m avg) = 60-75
-  else if (avgDistance < 50) {
-    consistencyScore = 70;
-  }
-  // Poor consistency (50-200m) = 40-60
-  else if (avgDistance < 200) {
-    consistencyScore = 45;
-  }
-  // Very poor consistency (>200m) = 20-40
-  else {
-    consistencyScore = 25;
-  }
-
-  // Penalize suspicious patterns
-  if (suspiciousFlag) {
-    consistencyScore = Math.max(10, consistencyScore - 30);
-  }
-
-  return {
-    consistencyScore: Math.round(consistencyScore),
-    avgDistance: Math.round(avgDistance),
-    maxDistance: Math.round(maxDistance),
-    pointCount: locations.length,
-    suspicious: suspiciousFlag
-  };
 }
 
 function showErrorPanel(message, showRetry = false, retryCallback = null) {
