@@ -54,7 +54,8 @@ const ROUTES = {
 // Helper: Convert time string or Date to minutes since midnight
 function parseMinutes(time) {
   if (time instanceof Date) {
-    return time.getHours() * 60 + time.getMinutes();
+    // Add seconds and milliseconds as fractions of a minute for smooth continuous movement
+    return time.getHours() * 60 + time.getMinutes() + (time.getSeconds() / 60) + (time.getMilliseconds() / 60000);
   }
   if (typeof time === 'string') {
     const parts = time.split(':');
@@ -64,7 +65,7 @@ function parseMinutes(time) {
 }
 
 // Main function: Get estimated bus position along route at given time
-window.getBusPosition = function(routeId, currentTime) {
+window.getBusPosition = function (routeId, currentTime) {
   const route = ROUTES[routeId];
   if (!route) {
     return null;
@@ -90,12 +91,12 @@ window.getBusPosition = function(routeId, currentTime) {
     };
   }
 
-  // Edge case: after last stop
+  // Edge case: after last stop (Inactive/Not Running) -> Reset to starting point
   if (currentMinutes >= scheduleMinutes[scheduleMinutes.length - 1]) {
     return {
-      lat: stops[stops.length - 1].lat,
-      lng: stops[stops.length - 1].lng,
-      stopName: stops[stops.length - 1].name
+      lat: stops[0].lat,
+      lng: stops[0].lng,
+      stopName: stops[0].name
     };
   }
 

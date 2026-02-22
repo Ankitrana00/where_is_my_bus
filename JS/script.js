@@ -1,77 +1,3 @@
-// Select Location Button
-const locationBtn = document.querySelector(".btn-location");
-let watchId = null;
-
-function startSharing() {
-  if (!locationBtn) return;
-
-  // Check if browser supports GPS
-  if (!navigator.geolocation) {
-    alert("Geolocation is not supported by your browser.");
-    return;
-  }
-
-  // Ask user permission and start tracking
-  watchId = navigator.geolocation.watchPosition(
-    successLocation,
-    errorLocation,
-    {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    }
-  );
-
-  locationBtn.innerText = "📡 Sharing Location...";
-  locationBtn.disabled = true;
-}
-
-if (locationBtn) {
-  locationBtn.addEventListener("click", startSharing);
-}
-
-// Success Callback (When location received)
-function successLocation(position) {
-
-  const lat = position.coords.latitude;
-  const lng = position.coords.longitude;
-  const accuracy = position.coords.accuracy;
-
-  console.log("Latitude:", lat);
-  console.log("Longitude:", lng);
-  console.log("Accuracy (meters):", accuracy);
-
-  // For now just show alert (later send to Firebase)
-  console.log("Location Updated Successfully");
-}
-
-
-// Error Callback
-function errorLocation(error) {
-
-  let msg = "";
-
-  switch (error.code) {
-    case error.PERMISSION_DENIED:
-      msg = "Please allow location access.";
-      break;
-    case error.POSITION_UNAVAILABLE:
-      msg = "Location not available.";
-      break;
-    case error.TIMEOUT:
-      msg = "Location request timed out.";
-      break;
-    default:
-      msg = "Unknown error.";
-  }
-
-  alert(msg);
-
-  // Reset button
-  locationBtn.innerText = "📍 Share My Location";
-  locationBtn.disabled = false;
-}
-
 // Validation Helpers
 function validateRouteName(name) {
   if (!name || name.trim().length === 0) {
@@ -149,7 +75,7 @@ function goToBusList() {
 }
 
 // Real-time validation on input
-document.getElementById('from').addEventListener('blur', function() {
+document.getElementById('from').addEventListener('blur', function () {
   const validation = validateRouteName(this.value.trim());
   if (!validation.valid) {
     showFieldError('from', validation.error);
@@ -158,12 +84,38 @@ document.getElementById('from').addEventListener('blur', function() {
   }
 });
 
-document.getElementById('to').addEventListener('blur', function() {
+document.getElementById('to').addEventListener('blur', function () {
   const validation = validateRouteName(this.value.trim());
   if (!validation.valid) {
     showFieldError('to', validation.error);
   } else {
     clearFieldError('to');
+  }
+});
+
+// Populate Autocomplete Datalist from ROUTES
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof ROUTES !== 'undefined') {
+    const stopsList = document.getElementById('stops-list');
+    const uniqueStops = new Set();
+
+    // Extract unique stop names from all routes
+    Object.values(ROUTES).forEach(route => {
+      if (route.stops) {
+        route.stops.forEach(stop => {
+          if (stop.name) {
+            uniqueStops.add(stop.name);
+          }
+        });
+      }
+    });
+
+    // Populate datalist options
+    Array.from(uniqueStops).sort().forEach(stopName => {
+      const option = document.createElement('option');
+      option.value = stopName;
+      stopsList.appendChild(option);
+    });
   }
 });
 

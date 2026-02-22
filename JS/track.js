@@ -14,7 +14,7 @@
  */
 
 // CRITICAL: Catch any JavaScript errors
-window.addEventListener('error', function(event) {
+window.addEventListener('error', function (event) {
   const msg = "❌ ERROR: " + event.message + " at " + event.filename + ":" + event.lineno;
   console.error(msg);
   debugLog(msg);
@@ -52,7 +52,7 @@ try {
   if (busIdEl) busIdEl.textContent = busId || "(none)";
   if (routesEl) routesEl.textContent = (typeof ROUTES !== 'undefined') ? "✅ Yes" : "❌ No";
   debugLog("📝 Status display updated for Bus ID and ROUTES");
-} catch(e) {
+} catch (e) {
   debugLog("⚠️ Error updating status display: " + e.message);
 }
 
@@ -66,16 +66,22 @@ if (busId) {
 let mapCenter = [28.99, 77.02]; // Default center (Delhi area)
 let mapZoom = 10;
 
-debugLog("🗺️ Looking for route: " + busId + " in ROUTES...");
+debugLog("🗺️ Looking for route: '" + busId + "' in ROUTES...");
 debugLog("📋 Available routes in ROUTES: " + JSON.stringify(Object.keys(ROUTES || {})));
 
-if (busId && ROUTES && ROUTES[busId]) {
-  const route = ROUTES[busId];
-  const firstStop = route.stops[0];
-  if (firstStop) {
+let currentRoute = null;
+if (busId && ROUTES) {
+  // Handle potential trailing spaces from URL decoding (e.g. from sampleBuses IDs)
+  const normalizedBusId = busId.trim();
+  currentRoute = ROUTES[normalizedBusId] || ROUTES[busId];
+
+  if (currentRoute && currentRoute.stops && currentRoute.stops.length > 0) {
+    const firstStop = currentRoute.stops[0];
     mapCenter = [firstStop.lat, firstStop.lng];
     mapZoom = 10;
-    debugLog(`✅ Map centered on ${busId} starting point: ${firstStop.name}`);
+    debugLog(`✅ Map centered on starting point: ${firstStop.name}`);
+  } else {
+    debugLog(`⚠️ Route found but has no stops array for ${busId}`);
   }
 } else {
   debugLog("⚠️ Route not found! busId exists: " + !!busId + " ROUTES exists: " + !!ROUTES + " Route in ROUTES: " + !!(ROUTES && ROUTES[busId]));
@@ -88,7 +94,7 @@ debugLog("✅ Map instance created successfully");
 try {
   const mapEl = document.getElementById("statusMap");
   if (mapEl) mapEl.textContent = "✅ Yes";
-} catch(e) {
+} catch (e) {
   debugLog("⚠️ Error updating map status: " + e.message);
 }
 
@@ -118,10 +124,10 @@ function calculateGPSDistance(lat1, lng1, lat2, lng2) {
   const R = 6371000; // Earth radius in meters
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLng/2) * Math.sin(dLng/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
@@ -165,7 +171,7 @@ function evaluateLocationConsistency(locations) {
     const clusteredCount = distances.filter(d => d < 5).length; // 5m threshold
     const totalPairs = (locations.length * (locations.length - 1)) / 2;
     const percentClustered = clusteredCount / totalPairs;
-    
+
     // If stationary for many samples (>80% within 5m), consistency is good
     const isStationary = percentClustered > 0.8;
 
@@ -205,7 +211,7 @@ function evaluateLocationConsistency(locations) {
       pointCount: locations.length,
       suspicious: suspiciousFlag
     };
-  } catch(error) {
+  } catch (error) {
     console.error('Error in evaluateLocationConsistency:', error);
     return { consistencyScore: 50, avgDistance: 0, maxDistance: 0, pointCount: 0, suspicious: false };
   }
@@ -294,27 +300,28 @@ let currentPositionSource = 'offline'; // Values: 'offline' | 'estimated' | 'liv
 
 // Fallback positioning system - estimates bus position based on route schedule
 function updateEstimatedPosition() {
-  if (!busId || !ROUTES || !ROUTES[busId]) {
-    return;
-  }
+  if (!busId || !ROUTES) return;
 
-  const route = ROUTES[busId];
+  const normalizedBusId = busId.trim();
+  if (!ROUTES[normalizedBusId] && !ROUTES[busId]) return;
+
+  const targetId = ROUTES[normalizedBusId] ? normalizedBusId : busId;
   const now = new Date();
-  const estimatedPos = window.getBusPosition(busId, now);
+  const estimatedPos = window.getBusPosition(targetId, now);
 
   if (!estimatedPos) {
-    console.log("No estimated position available for", busId);
+    console.log("No estimated position available for", targetId);
     return;
   }
 
-  console.log(`Estimated position for ${busId}: ${estimatedPos.stopName} (${estimatedPos.lat}, ${estimatedPos.lng})`);
-  
+  console.log(`Estimated position for ${targetId}: ${estimatedPos.stopName} (${estimatedPos.lat}, ${estimatedPos.lng})`);
+
   busMarker.setLatLng([estimatedPos.lat, estimatedPos.lng]);
-  
+
   // Update popup with stop name
-  const popupText = `${busId}<br>📍 ${estimatedPos.stopName}`;
+  const popupText = `${targetId}<br>📍 ${estimatedPos.stopName}`;
   busMarker.bindPopup(popupText);
-  
+
   // Update confidence to show this is estimated (only if we don't have live GPS data)
   if (currentPositionSource !== 'live') {
     currentPositionSource = 'estimated';
@@ -324,9 +331,12 @@ function updateEstimatedPosition() {
 
 // Run estimated positioning every 10 seconds as fallback when no live data
 let estimationIntervalId = null;
-if (busId && ROUTES && ROUTES[busId]) {
-  estimationIntervalId = setInterval(updateEstimatedPosition, 10000); // Update every 10 seconds for smooth progression
-  updateEstimatedPosition(); // Initial call
+if (busId && ROUTES) {
+  const normalizedBusId = busId.trim();
+  if (ROUTES[normalizedBusId] || ROUTES[busId]) {
+    estimationIntervalId = setInterval(updateEstimatedPosition, 10000); // Update every 10 seconds for smooth progression
+    updateEstimatedPosition(); // Initial call
+  }
 }
 
 // Live location listener (average position)
@@ -335,7 +345,8 @@ console.log("🔗 Setting up Firebase listener for bus:", busId);
 
 if (busId) {
   try {
-    db.ref(`liveLocation/${busId}`).on("value",
+    const normalizedBusId = busId.trim();
+    db.ref(`liveLocation/${normalizedBusId}`).on("value",
       (snapshot) => {
         debugLog("📥 Firebase listener fired! Snapshot exists: " + !!snapshot.val());
         const data = snapshot.val();
@@ -398,7 +409,7 @@ if (busId) {
             lng: latestLocation.lng,
             time: latestLocation.time
           });
-          
+
           // Keep only last 5 samples
           if (recentLocationHistory.length > MAX_HISTORY) {
             recentLocationHistory.shift();
@@ -439,7 +450,7 @@ if (busId) {
 
         // Enhanced confidence calculation using all available metrics
         const confidence = calculateConfidenceScore(recentLocations, totalVariance);
-        
+
         // Mark position source as live and update confidence
         currentPositionSource = 'live';
         debugLog("🎯 Updating marker and confidence. Current source: live, Confidence: " + confidence);
@@ -489,9 +500,10 @@ if (busId) {
 function cleanupOldLocations() {
   if (!busId) return;
 
+  const normalizedBusId = busId.trim();
   const oneHourAgo = Date.now() - 3600000;
 
-  db.ref(`liveLocation/${busId}`).once('value', (snapshot) => {
+  db.ref(`liveLocation/${normalizedBusId}`).once('value', (snapshot) => {
     const updates = {};
 
     snapshot.forEach((child) => {
@@ -502,7 +514,7 @@ function cleanupOldLocations() {
     });
 
     if (Object.keys(updates).length > 0) {
-      db.ref(`liveLocation/${busId}`).update(updates)
+      db.ref(`liveLocation/${normalizedBusId}`).update(updates)
         .then(() => {
           console.log(`Cleaned ${Object.keys(updates).length} old locations`);
           showCleanupNotice(Object.keys(updates).length);
@@ -526,7 +538,7 @@ debugLog("🔘 Join button element found: " + !!joinBtn);
 try {
   const buttonEl = document.getElementById("statusButton");
   if (buttonEl) buttonEl.textContent = !!joinBtn ? "✅ Yes" : "❌ No";
-} catch(e) {
+} catch (e) {
   debugLog("⚠️ Error updating button status: " + e.message);
 }
 
@@ -561,8 +573,10 @@ function writeLocationWithRetry(payload) {
 
   debugLog("💾 Writing location to Firebase: " + JSON.stringify(payload));
 
+  const normalizedBusId = busId.trim();
+
   const attemptWrite = () => {
-    db.ref("liveLocation/" + busId + "/" + userId)
+    db.ref("liveLocation/" + normalizedBusId + "/" + userId)
       .set(payload)
       .then(() => {
         debugLog("✅ Firebase write successful!");
@@ -596,7 +610,7 @@ function writeLocationWithRetry(payload) {
 
 joinBtn.addEventListener("click", () => {
   debugLog("🔘 Inside Bus button clicked!");
-  
+
   if (!navigator.geolocation) {
     debugLog("❌ GPS not supported");
     showErrorPanel('GPS is not supported on this device', false);
@@ -747,7 +761,7 @@ function calculateConfidenceScore(locations, variance) {
   // Evaluate consistency of recent location history
   const consistencyAnalysis = evaluateLocationConsistency(recentLocationHistory);
   let consistencyScore = Math.round(consistencyAnalysis.consistencyScore * 0.3); // Weight at 30 points max
-  
+
   // High penalty for suspicious patterns (spoof detection)
   if (consistencyAnalysis.suspicious) {
     consistencyScore = Math.max(0, consistencyScore - 15);
@@ -755,10 +769,10 @@ function calculateConfidenceScore(locations, variance) {
 
   // Total: Cap at 100
   const totalScore = Math.min(100, Math.round(
-    userCountScore + 
-    accuracyScore + 
-    freshnessScore + 
-    clusteringScore + 
+    userCountScore +
+    accuracyScore +
+    freshnessScore +
+    clusteringScore +
     consistencyScore
   ));
 
@@ -815,12 +829,12 @@ function updateConfidenceAndStatus(numUsers, variance, modeOrConfidence = 0) {
 }
 
 // Initialize UI to offline state
-updateConfidenceAndStatus(0, 0, 0); 
+updateConfidenceAndStatus(0, 0, 0);
 window.onbeforeunload = () => {
 
   if (busId && userId) {
-
-    db.ref("liveLocation/" + busId + "/" + userId).remove();
+    const normalizedBusId = busId.trim();
+    db.ref("liveLocation/" + normalizedBusId + "/" + userId).remove();
 
     console.log("User removed from Firebase");
   }
@@ -855,7 +869,8 @@ window.addEventListener('beforeunload', () => {
   }
   db.ref('.info/connected').off();
   if (busId) {
-    db.ref(`liveLocation/${busId}`).off();
+    const normalizedBusId = busId.trim();
+    db.ref(`liveLocation/${normalizedBusId}`).off();
   }
 });
 

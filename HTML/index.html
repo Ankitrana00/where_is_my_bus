@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
   <!-- Header -->
@@ -26,42 +28,37 @@
 
       <div class="input-group">
         <label>From</label>
-        <input type="text" id="from" placeholder="Enter source">
+        <input type="text" id="from" list="stops-list" placeholder="Enter source" autocomplete="off">
       </div>
 
       <div class="input-group">
         <label>To</label>
-        <input type="text" id="to" placeholder="Enter destination">
+        <input type="text" id="to" list="stops-list" placeholder="Enter destination" autocomplete="off">
       </div>
 
-<button class="btn-search" onclick="goToBusList()">Find Bus</button>
-
-
+      <button class="btn-search" onclick="goToBusList()">Find Bus</button>
     </section>
 
     <!-- Results -->
     <section id="results"></section>
 
-    <!-- Location -->
-    <section class="location-box">
-      <button class="btn-location">
-        📍 Share My Location
-      </button>
-    </section>
+    <!-- Datalist for autocomplete -->
+    <datalist id="stops-list"></datalist>
 
   </main>
   <!-- Firebase CDN -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-<!-- Firebase Init -->
-<script src="../FIREBASE/firebase.js"></script>
+  <!-- Firebase Init -->
+  <script src="../FIREBASE/firebase.js"></script>
 
-
-
+  <!-- Route Data for Autocomplete -->
+  <script src="../JS/routes.js"></script>
 
   <script src="../JS/script.js?v=20250213-1"></script>
-  
+
 
 </body>
+
 </html>

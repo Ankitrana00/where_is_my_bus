@@ -10,29 +10,20 @@ console.log("To:", to);
 
 const container = document.querySelector(".container");
 
-const sampleBuses = [
-  {
-    id: "Palwal–Chandigarh ",
-    route: ["Palwal", "Ambala", "Chandigarh"],
-    schedule: ["08:30", "12:00", "16:30"],
-    status: "estimated",
-    active: true
-  },
-  {
-    id: "Yamunanagar–Kurukshetra ",
-    route: ["Yamunanagar", "Shahbad", "Kurukshetra"],
-    schedule: ["10:15", "13:45", "14:10"],
-    status: "estimated",
-    active: true
-  },
-  {
-    id: "Jaipur–Delhi ",
-    route: ["Jaipur", "Alwar", "Gurugram", "Delhi"],
-    schedule: ["07:00", "11:20", "15:40", "19:00"],
-    status: "estimated",
-    active: true
-  }
-];
+let sampleBuses = [];
+if (typeof ROUTES !== 'undefined') {
+  sampleBuses = Object.keys(ROUTES).map(busId => {
+    return {
+      id: busId,
+      route: ROUTES[busId].stops.map(stop => stop.name),
+      schedule: ROUTES[busId].schedule,
+      status: "estimated",
+      active: true
+    };
+  });
+} else {
+  console.warn("ROUTES is not defined. Please include routes.js");
+}
 
 const liveListeners = {};
 const lastUpdateMap = {};
@@ -243,7 +234,7 @@ function filterAndDisplayBuses(buses) {
 
   const fromKey = normalizeName(from);
   const toKey = normalizeName(to);
-  
+
   console.log(`Filtering buses: from="${from}" (normalized: "${fromKey}") to="${to}" (normalized: "${toKey}")`);
   console.log("Total buses received:", buses.length);
 
@@ -270,12 +261,12 @@ function filterAndDisplayBuses(buses) {
     const schedule = Array.isArray(bus.schedule)
       ? bus.schedule
       : (bus.time ? [bus.time] : []);
-    
+
     // Show arrival time at destination (not departure)
-    const displayTime = schedule.length > 0 && tIndex < schedule.length 
-      ? schedule[tIndex] 
+    const displayTime = schedule.length > 0 && tIndex < schedule.length
+      ? schedule[tIndex]
       : (schedule.length > 0 ? schedule[0] : 'N/A');
-    
+
     const key = getOrCreateBusKey(busId);
 
     found = true;
@@ -336,7 +327,7 @@ function trackBus(id) {
   window.location.href = "/HTML/track.html?bus=" + encodeURIComponent(id);
 }
 
-  // Later: redirect to map page
+// Later: redirect to map page
 
 window.addEventListener('beforeunload', () => {
   Object.values(liveListeners).forEach(({ ref, callback }) => {
