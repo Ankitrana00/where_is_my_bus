@@ -673,7 +673,15 @@ joinBtn.addEventListener("click", () => {
 
         joinBtn.innerText = "Sharing Location ✓";
 
-        // ✅ LOG STAGE 3: Coordinates being sent to Firebase (which drives the map)
+        // ✅ IMMEDIATELY UPDATE MARKER LOCALLY
+        // Don't wait for Firebase round-trip to show the user their own location, 
+        // to avoid marker being stuck at initial route start (e.g. Jaipur) in test environments.
+        currentPositionSource = 'live';
+        busMarker.setLatLng([lat, lng]);
+        map.panTo([lat, lng]);
+        debugLog(`🎯 [LOCAL UPDATE] Marker moved to real GPS: lat=${lat}, lng=${lng}`);
+
+        // ✅ LOG STAGE 3: Coordinates being sent to Firebase (which drives the map for others)
         debugLog(`🚀 [FIREBASE WRITE] Sending lat=${lat}, lng=${lng} to Firebase path: liveLocation/${busId.trim()}/${userId}`);
         console.log(`🚀 [FIREBASE WRITE] lat=${lat}, lng=${lng}`);
 
