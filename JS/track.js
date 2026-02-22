@@ -395,10 +395,10 @@ if (busId) {
         console.log("Valid locations:", recentLocations.length);
 
         if (recentLocations.length === 0) {
-          // No live GPS data - keep using estimated position
-          console.log("No recent live locations, keeping estimated position");
-          // Don't reset confidence here - keep estimated or offline state
-          // The updateEstimatedPosition() interval will handle showing estimated status
+          debugLog("⚠️ [STALE DATA] No recent live locations (all older than 2 min). Resetting source to offline.");
+          console.log("No recent live locations, resetting to offline/estimated");
+          // Reset source so estimated positioning can take over again
+          currentPositionSource = 'offline';
           showNoDataMessage();
           return;
         }
@@ -463,10 +463,12 @@ if (busId) {
         console.log("Weighted position:", avgLat, avgLng, "Total weight:", totalWeight);
 
         if (!Number.isFinite(totalWeight) || !Number.isFinite(avgLat) || !Number.isFinite(avgLng)) {
-          // Invalid calculation - revert to estimated position state
-          console.log("❌ Invalid calculation result, reverting to estimated position");
-          currentPositionSource = 'estimated';
-          updateConfidenceAndStatus(0, 0, 'estimated');
+          // Invalid calculation - keep it as offline, don't mark as 'estimated' since
+          // we already set 'live' above which could cause a race with updateEstimatedPosition
+          console.log("❌ Invalid calculation result, keeping source as offline");
+          debugLog("❌ [CALC ERROR] Invalid weighted position — NaN detected. Source reset to offline.");
+          currentPositionSource = 'offline';
+          updateConfidenceAndStatus(0, 0);
           return;
         }
 

@@ -1,21 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>Live Bus Tracking</title>
 
   <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <link rel="stylesheet" href="../CSS/track.css" />
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
   <!-- Header -->
@@ -25,12 +24,14 @@
   </header>
 
   <!-- Debug Panel (will show on top) -->
-  <div id="debugPanel" style="background: #222; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; max-height: 150px; overflow-y: auto; border-bottom: 2px solid #0f0; white-space: pre-wrap; word-break: break-all;">
+  <div id="debugPanel"
+    style="background: #222; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; max-height: 150px; overflow-y: auto; border-bottom: 2px solid #0f0; white-space: pre-wrap; word-break: break-all;">
     <div id="debugLog"></div>
   </div>
 
   <!-- Status Display -->
-  <div id="statusDisplay" style="background: #f0f0f0; padding: 10px; border-bottom: 1px solid #ddd; font-family: monospace; font-size: 12px;">
+  <div id="statusDisplay"
+    style="background: #f0f0f0; padding: 10px; border-bottom: 1px solid #ddd; font-family: monospace; font-size: 12px;">
     <p><strong>Bus ID:</strong> <span id="statusBusId">Loading...</span></p>
     <p><strong>ROUTES Loaded:</strong> <span id="statusRoutes">...</span></p>
     <p><strong>Map Initialized:</strong> <span id="statusMap">...</span></p>
@@ -61,20 +62,20 @@
   <div id="map"></div>
 
   <!-- Leaflet JS -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
   </script>
   <!-- Firebase CDN -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-<!-- Firebase Init -->
-<script src="../FIREBASE/firebase.js"></script>
+  <!-- Firebase Init -->
+  <script src="../FIREBASE/firebase.js"></script>
 
-<!-- Routes for estimated positioning -->
-<script src="../JS/routes.js"></script>
+  <!-- Routes for estimated positioning -->
+  <script src="../JS/routes.js"></script>
 
-  <script src="../JS/track.js?v=20250213-1"></script>
+  <script src="../JS/track.js?v=20250222-2"></script>
 
 </body>
+
 </html>
