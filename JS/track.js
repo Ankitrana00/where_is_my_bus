@@ -316,16 +316,20 @@ function updateEstimatedPosition() {
 
   console.log(`Estimated position for ${targetId}: ${estimatedPos.stopName} (${estimatedPos.lat}, ${estimatedPos.lng})`);
 
-  busMarker.setLatLng([estimatedPos.lat, estimatedPos.lng]);
-
-  // Update popup with stop name
-  const popupText = `${targetId}<br>📍 ${estimatedPos.stopName}`;
-  busMarker.bindPopup(popupText);
-
-  // Update confidence to show this is estimated (only if we don't have live GPS data)
+  // ✅ FIX: Only update the marker from estimated data if we do NOT have live GPS data.
+  // Previously this ran unconditionally every 10 seconds, silently overriding real GPS coordinates.
   if (currentPositionSource !== 'live') {
+    busMarker.setLatLng([estimatedPos.lat, estimatedPos.lng]);
+
+    // Update popup with stop name
+    const popupText = `${targetId}<br>📍 ${estimatedPos.stopName}`;
+    busMarker.bindPopup(popupText);
+
     currentPositionSource = 'estimated';
     updateConfidenceAndStatus(0, 0, 'estimated');
+    debugLog(`🗓️ Estimated position applied (no live GPS): ${estimatedPos.stopName} (${estimatedPos.lat}, ${estimatedPos.lng})`);
+  } else {
+    debugLog(`⏭️ Skipping estimated position update — live GPS is active. Current source: ${currentPositionSource}`);
   }
 }
 
@@ -617,9 +621,8 @@ joinBtn.addEventListener("click", () => {
     return;
   }
 
-  const params = new URLSearchParams(window.location.search);
-  const busId = params.get("bus");
-  debugLog("📍 Bus ID for this click: " + busId);
+  // ✅ FIX: Removed shadowed `const busId` re-declaration — use the outer busId already parsed from URL
+  debugLog("📍 Bus ID for this click (outer scope): " + busId);
 
   if (!busId) {
     debugLog("❌ No bus ID provided");
@@ -638,27 +641,40 @@ joinBtn.addEventListener("click", () => {
 
     locationWatchId = navigator.geolocation.watchPosition(
       (pos) => {
-        debugLog("📡 GPS position received: " + pos.coords.latitude + ", " + pos.coords.longitude);
+        // ✅ LOG STAGE 1: Raw GPS coordinates received from device
+        const rawLat = pos.coords.latitude;
+        const rawLng = pos.coords.longitude;
+        const rawAccuracy = pos.coords.accuracy || 50;
+        debugLog(`📡 [RAW GPS] lat=${rawLat}, lng=${rawLng}, accuracy=${rawAccuracy}m`);
+        console.log(`📡 [RAW GPS] lat=${rawLat}, lng=${rawLng}, accuracy=${rawAccuracy}m`);
+
         retryCount = 0;
         hideErrorPanel();
 
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const accuracy = pos.coords.accuracy || 50;
+        const lat = rawLat;
+        const lng = rawLng;
+        const accuracy = rawAccuracy;
         const time = Date.now();
 
         const now = Date.now();
         if (now - lastUpdateTime < UPDATE_INTERVAL) {
           console.log("⏱️ Rate limiting: Skipping this update (too soon)");
+          debugLog(`⏱️ [RATE LIMITED] Skipping GPS update — too soon since last write (${now - lastUpdateTime}ms < ${UPDATE_INTERVAL}ms)`);
           return;
         }
         lastUpdateTime = now;
 
-        debugLog("🚀 Sending to Firebase: " + lat + ", " + lng + ", accuracy: " + accuracy);
+        // ✅ LOG STAGE 2: Coordinates stored in state (payload)
+        lastPositionPayload = { lat, lng, accuracy, time };
+        debugLog(`💾 [STATE STORED] lat=${lat}, lng=${lng}, accuracy=${accuracy}m, time=${time}`);
+        console.log(`💾 [STATE STORED] payload=`, lastPositionPayload);
 
         joinBtn.innerText = "Sharing Location ✓";
 
-        lastPositionPayload = { lat, lng, accuracy, time };
+        // ✅ LOG STAGE 3: Coordinates being sent to Firebase (which drives the map)
+        debugLog(`🚀 [FIREBASE WRITE] Sending lat=${lat}, lng=${lng} to Firebase path: liveLocation/${busId.trim()}/${userId}`);
+        console.log(`🚀 [FIREBASE WRITE] lat=${lat}, lng=${lng}`);
+
         writeRetryCount = 0;
         writeLocationWithRetry(lastPositionPayload);
       },

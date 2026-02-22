@@ -91,13 +91,11 @@ window.getBusPosition = function (routeId, currentTime) {
     };
   }
 
-  // Edge case: after last stop (Inactive/Not Running) -> Reset to starting point
+  // Edge case: after last stop — bus is no longer running. Return null so the map
+  // does NOT fall back to the originating city (e.g. Jaipur) for the rest of the day.
+  // The caller (updateEstimatedPosition) handles null gracefully.
   if (currentMinutes >= scheduleMinutes[scheduleMinutes.length - 1]) {
-    return {
-      lat: stops[0].lat,
-      lng: stops[0].lng,
-      stopName: stops[0].name
-    };
+    return null;
   }
 
   // Find the segment: scheduleMinutes[i] <= currentMinutes < scheduleMinutes[i+1]
